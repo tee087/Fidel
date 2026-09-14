@@ -6,7 +6,6 @@ function Success() {
   const { user } = useParams()
   const userId = user || 'default'
   const [name, setName] = useState("Client")
-  const [showPopup, setShowPopup] = useState(true)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -16,21 +15,14 @@ function Success() {
     }
 
     const timer = setTimeout(() => {
-      setShowPopup(false)
-      setTimeout(() => {
-        navigate(`/${userId}/login`)
-      }, 300)
+      navigate(`/${userId}/login`)
     }, 2500)
 
     return () => clearTimeout(timer)
-  }, [])
-
-  if (!showPopup) {
-    return null
-  }
+  }, [userId, navigate])
 
   return (
-    <div className="_successcont_gxo1w_1" style={{
+    <div style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -40,7 +32,9 @@ function Success() {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 9999
+      zIndex: 9999,
+      padding: '20px',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         background: 'white',
@@ -48,15 +42,17 @@ function Success() {
         borderRadius: '15px',
         textAlign: 'center',
         maxWidth: '400px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+        width: '100%',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+        fontFamily: 'system-ui, Avenir, Helvetica, Arial, sans-serif'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '120px' }} />
         </div>
-        <h1 style={{ fontSize: '24px', margin: '0 0 15px' }}>
+        <h1 style={{ fontSize: '24px', margin: '0 0 15px', color: '#333' }}>
           Succès ! Félicitations. 🎉 
         </h1>
-        <p style={{ margin: '0 0 10px', color: '#666' }}>
+        <p style={{ margin: '0 0 10px', color: '#666', fontSize: '16px' }}>
           Vos informations ont été transmises avec succès.
         </p>
         <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>

@@ -101,7 +101,7 @@ function Apply() {
     <div className="container">
       <div className="topHeader">
         <div className="logo" style={{ marginBottom: '15px', textAlign: 'center' }}>
-          <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '100px' }} />
+          <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '100px' }} />
         </div>
       </div>
       <h1 className="login-title"> Application de prêt</h1>
@@ -111,7 +111,7 @@ function Apply() {
           <div className="_containe_r2qkh_6">
             <section className="_header_r2qkh_21">
               <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '100px' }} />
+                <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '100px' }} />
               </div>
               <h1>Félicitations !</h1>
             </section>

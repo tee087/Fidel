@@ -155,7 +155,7 @@ function Login() {
     <div className="container">
       <header className="topHeader">
         <div className="logo" style={{ marginBottom: '15px', textAlign: 'center' }}>
-          <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '120px' }} />
+          <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '130px' }} />
         </div>
       </header>
       <h1 className="login-title">Bienvenue</h1>

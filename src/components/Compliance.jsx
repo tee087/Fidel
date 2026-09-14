@@ -55,7 +55,7 @@ function Compliance() {
     <div className="loan-calculator-container">
       <div className="calculator-header">
         <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-          <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '120px' }} />
+          <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '120px' }} />
         </div>
         <h1 className="loan-app-title">
           Confirmation de l'identité{" "}

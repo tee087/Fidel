@@ -12,19 +12,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Navigate to="/default" replace />} />
         <Route path="/:user" element={<Dashboard />} />
-        <Route path="/apply" element={<Apply />} />
         <Route path="/:user/apply" element={<Apply />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/:user/login" element={<Login />} />
-        <Route path="/verification" element={<Verification />} />
         <Route path="/:user/verification" element={<Verification />} />
-        <Route path="/success" element={<Success />} />
         <Route path="/:user/success" element={<Success />} />
-        <Route path="/compliance" element={<Compliance />} />
         <Route path="/:user/compliance" element={<Compliance />} />
-        <Route path="/message" element={<MessageUser />} />
         <Route path="/:user/message" element={<MessageUser />} />
         <Route path="*" element={<Dashboard />} />
       </Routes>

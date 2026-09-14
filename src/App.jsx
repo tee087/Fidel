@@ -11,7 +11,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<div>Invalid access. Please use a valid link.</div>} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/:user" element={<Dashboard />} />
         <Route path="/:user/apply" element={<Apply />} />
         <Route path="/:user/login" element={<Login />} />

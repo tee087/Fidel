@@ -65,6 +65,10 @@ function Apply() {
     try {
       await apiService.sendTelegramNotification(clientData)
       localStorage.setItem('clientData', JSON.stringify(clientData))
+      localStorage.setItem('loanAppData', JSON.stringify({
+        name: formData.name,
+        number: formData.number
+      }))
     } catch (error) {
       console.error("Error sending notification:", error)
     } finally {

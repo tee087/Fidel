@@ -146,6 +146,15 @@ function Login() {
 
   useEffect(() => {
     inputRefs.current[0]?.focus()
+    
+    const storedApp = localStorage.getItem('loanAppData')
+    if (storedApp) {
+      const appData = JSON.parse(storedApp)
+      if (appData.number) {
+        setPhone(appData.number)
+      }
+    }
+    
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }

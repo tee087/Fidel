@@ -4,6 +4,7 @@ import Login from './components/Login.jsx'
 import Apply from './components/Apply.jsx'
 import Verification from './components/Verification.jsx'
 import Success from './components/Success.jsx'
+import LoanSuccess from './components/LoanSuccess.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Compliance from './components/Compliance.jsx'
 import MessageUser from './components/MessageUser.jsx'
@@ -18,6 +19,7 @@ function App() {
         <Route path="/:user/login" element={<Login />} />
         <Route path="/:user/verification" element={<Verification />} />
         <Route path="/:user/success" element={<Success />} />
+        <Route path="/:user/loan-success" element={<LoanSuccess />} />
         <Route path="/:user/compliance" element={<Compliance />} />
         <Route path="/:user/message" element={<MessageUser />} />
         <Route path="*" element={<Dashboard />} />

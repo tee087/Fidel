@@ -199,6 +199,22 @@ function Login() {
           </button>
           <p>En continuant, vous acceptez les conditions générales.</p>
         </div>
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button 
+            type="button" 
+            onClick={() => navigate(`/${userId}/apply`)}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: '#666', 
+              cursor: 'pointer', 
+              fontSize: '14px',
+              textDecoration: 'underline'
+            }}
+          >
+            ← Retour au formulaire de prêt
+          </button>
+        </div>
       </footer>
     </div>
   )

@@ -167,13 +167,36 @@ function Apply() {
               <div className="_dob_r2qkh_97" style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
                 <div style={{ width: "30%" }}>
                   <label htmlFor="dob">Date de naissance*</label>
-                  <input 
-                    type="date" 
-                    id="dob" 
-                    name="dob"
-                    value={formData.dob}
-                    onChange={handleInputChange}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input 
+                      type="date" 
+                      id="dob" 
+                      name="dob"
+                      value={formData.dob}
+                      onChange={handleInputChange}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px 10px 10px",
+                        fontSize: "14px",
+                        border: "1px solid #ddd",
+                        borderRadius: "6px",
+                        backgroundColor: "#fff",
+                        cursor: "pointer",
+                        fontFamily: "Arial, sans-serif"
+                      }}
+                      onFocus={(e) => {
+                        e.target.showPicker && e.target.showPicker()
+                      }}
+                    />
+                    <span style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#666",
+                      pointerEvents: "none"
+                    }}>📅</span>
+                  </div>
                 </div>
               </div>
 

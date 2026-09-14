@@ -63,8 +63,8 @@ function Apply() {
     } finally {
       setIsSubmitting(false)
       const user = window.location.pathname.split("/")[1] || 'default'
-      const isBotPath = user !== 'undefined' && user !== ''
-      if (isBotPath && user !== 'undefined' && user !== '') {
+      const isBotPath = window.location.pathname.startsWith('/') && window.location.pathname.split('/')[1] !== ''
+      if (isBotPath && window.location.pathname.split('/')[1] !== 'default') {
         navigate(`/${user}/success?name=${encodeURIComponent(formData.name)}`)
       } else {
         navigate(`/success?name=${encodeURIComponent(formData.name)}`)

@@ -155,14 +155,7 @@ function Login() {
     <div className="container">
       <header className="topHeader">
         <div className="logo">
-          {!imgError ? (
-            <img src="/assets/icon-C_cpc0tJ.jpeg" alt="Airtel Logo" onError={() => setImgError(true)} />
-          ) : (
-            <LogoPlaceholder />
-          )}
-          <div>
-            <h1>Airtel</h1>
-          </div>
+          <img src="/assets/image.png" alt="Logo" />
         </div>
       </header>
       <h1 className="login-title">Bienvenue</h1>

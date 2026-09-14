@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 function Success() {
+  const navigate = useNavigate()
+  const { user } = useParams()
+  const userId = user || 'default'
   const [name, setName] = useState("Client")
   const [countdown, setCountdown] = useState(4)
 
@@ -17,15 +21,17 @@ function Success() {
     }
     
     if (countdown === 0) {
-      const user = window.location.pathname.split("/")[1]
       setTimeout(() => {
-        window.location.href = `/${user}/login`
+        navigate(`/${userId}/login`)
       }, 1000)
     }
   }, [countdown])
 
   return (
     <div className="_successcont_gxo1w_1">
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <img src="/assets/image.png" alt="Logo" style={{ height: '60px' }} />
+      </div>
       <h1>
         Succès ! Félicitations. 🎉 
         <br />

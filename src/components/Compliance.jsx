@@ -54,6 +54,9 @@ function Compliance() {
   return (
     <div className="loan-calculator-container">
       <div className="calculator-header">
+        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+          <img src="/assets/image.png" alt="Logo" style={{ height: '60px' }} />
+        </div>
         <h1 className="loan-app-title">
           Confirmation de l'identité{" "}
           <span className="fast-text">en attente...</span>

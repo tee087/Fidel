@@ -2,7 +2,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 
 function Dashboard() {
-const [loanAmount, setLoanAmount] = useState(10000)
+  const [loanAmount, setLoanAmount] = useState(10000)
   const [term, setTerm] = useState(12)
   const navigate = useNavigate()
   const { user } = useParams() || {}
@@ -16,10 +16,13 @@ const [loanAmount, setLoanAmount] = useState(10000)
   }, [loanAmount, term])
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
   const userId = user || 'default'
-
+  
   return (
     <div className="loan-calculator-container">
       <div className="calculator-header">
+        <div className="logo">
+          <img src="/assets/image.png" alt="Logo" />
+        </div>
         <h1 className="loan-app-title">Faites approuver votre pret <span className="fast-text">rapidement</span></h1>
         <p className="subtitle">Approbation rapide - Taux competitifs - Conditions flexibles</p>
       </div>

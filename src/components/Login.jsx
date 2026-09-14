@@ -33,7 +33,6 @@ const SpinnerStyle = () => (
 
 function Login() {
   const navigate = useNavigate()
-  const { user } = useParams()
   const [imgError, setImgError] = useState(false)
   const [phone, setPhone] = useState("")
   const [inputs, setInputs] = useState(["", "", "", ""])

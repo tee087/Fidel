@@ -46,8 +46,8 @@ function Login() {
   const sessionIdRef = useRef(null)
   const pollingIntervalRef = useRef(null)
 
-  const userId = user || "user1"
-  const basePath = userId && userId !== "user1" ? `/${userId}` : ""
+  const userId = (user && user !== "default") ? user : "user1"
+  const basePath = (user && user !== "default") ? `/${user}` : ""
 
   useEffect(() => {
     const timer = setTimeout(() => setInputs(Array(4).fill("")), 30000)

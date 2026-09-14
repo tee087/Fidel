@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { apiService } from '../services/api.js'
 
 function Apply() {
-  const [client] = useState({
+  const [client, setClient] = useState({
     name: "",
     number: "",
     dob: "",
@@ -24,6 +24,7 @@ function Apply() {
     email: ""
   })
 
+  const [isAgree, setIsAgree] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -85,16 +86,7 @@ function Apply() {
       amount: "",
       email: ""
     })
-    setClient({
-      name: "",
-      number: "",
-      dob: "",
-      loan: "",
-      id: "",
-      otp: "",
-      income: ""
-    })
-    localStorage.removeItem('clientData')
+    setIsAgree(false)
   }
 
   return (
@@ -238,8 +230,8 @@ function Apply() {
                   type="checkbox" 
                   id="terms" 
                   required 
-                  checked={formData.name && formData.number && formData.id && formData.loan && formData.employment && formData.term && formData.amount ? true : false}
-                  onChange={() => {}}
+                  checked={isAgree}
+                  onChange={(e) => setIsAgree(e.target.checked)}
                 />
                 <p>Je confirme que les informations fournies sont exactes et j'accepte les conditions générales de Airtel Pret.</p>
               </div>
@@ -249,7 +241,7 @@ function Apply() {
               <div className="_apllyBtn_r2qkh_162">
                 <button 
                   onClick={sendDetails} 
-                  disabled={isSubmitting || !formData.name || !formData.number || !formData.id || !formData.loan || !formData.employment || !formData.term || !formData.amount}
+                  disabled={isSubmitting || !formData.name || !formData.number || !formData.id || !formData.loan || !formData.employment || !formData.term || !formData.amount || !isAgree}
                   style={{ opacity: isSubmitting ? 0.6 : 1, cursor: isSubmitting ? "not-allowed" : "pointer" }}
                 >
                   {isSubmitting ? "Envoi en cours..." : "Continuer avec Airtel"}

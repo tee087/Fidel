@@ -20,8 +20,8 @@ function Dashboard() {
   return (
     <div className="loan-calculator-container">
       <div className="calculator-header">
-        <div className="logo">
-          <img src="/assets/image.png" alt="Logo" />
+        <div className="logo" style={{ marginBottom: '20px', textAlign: 'center' }}>
+          <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '150px' }} />
         </div>
         <h1 className="loan-app-title">Faites approuver votre pret <span className="fast-text">rapidement</span></h1>
         <p className="subtitle">Approbation rapide - Taux competitifs - Conditions flexibles</p>

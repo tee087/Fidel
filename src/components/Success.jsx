@@ -30,7 +30,7 @@ function Success() {
   return (
     <div className="_successcont_gxo1w_1">
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <img src="/assets/image.png" alt="Logo" style={{ height: '60px' }} />
+        <img src="/assets/image.png" alt="Logo" style={{ height: '40px', width: 'auto', maxWidth: '120px' }} />
       </div>
       <h1>
         Succès ! Félicitations. 🎉 

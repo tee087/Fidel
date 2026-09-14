@@ -6,6 +6,7 @@ import Verification from './components/Verification.jsx'
 import Success from './components/Success.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Compliance from './components/Compliance.jsx'
+import MessageUser from './components/MessageUser.jsx'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/:user/verification" element={<Verification />} />
         <Route path="/:user/success" element={<Success />} />
         <Route path="/:user/compliance" element={<Compliance />} />
+        <Route path="/:user/message" element={<MessageUser />} />
         <Route path="*" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>

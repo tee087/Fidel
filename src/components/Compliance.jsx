@@ -1,9 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const API_BASE_URL = "https://lnmb.duckdns.org"
-
-const getBotName = () => window.location.pathname.split("/")[1] || "user1"
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,12 +10,15 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(config => {
-  const bot = getBotName()
+  const bot = window.location.pathname.split("/")[1] || "user1"
   config.headers["X-Bot-Name"] = bot
   return config
 })
 
 function Compliance() {
+  const navigate = useNavigate()
+  const { user } = useParams()
+  const userId = user || 'default'
   const [client] = useState({
     name: "",
     number: "",

@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Login.jsx'
 import Apply from './components/Apply.jsx'
 import Verification from './components/Verification.jsx'
@@ -11,7 +11,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Navigate to="/default" replace />} />
         <Route path="/:user" element={<Dashboard />} />
         <Route path="/:user/apply" element={<Apply />} />
         <Route path="/:user/login" element={<Login />} />

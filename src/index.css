@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -653,6 +653,7 @@ header {
   font-weight: 700;
   color: #2d3436;
   margin-bottom: 12px;
+  display: block;
 }
 
 .slider-container {
@@ -664,15 +665,40 @@ header {
   width: 100%;
   height: 6px;
   -webkit-appearance: none;
-  background: linear-gradient(to right, #12203d, #111931);
+  appearance: none;
+  background: linear-gradient(to right, #172554 0 var(--slider-progress), #dbe4f1 var(--slider-progress) 100%);
   border-radius: 3px;
   outline: none;
+  cursor: pointer;
+  transition: background .15s ease;
 }
 
 .amount-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 24px;
   height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid rgba(143, 137, 137, .712);
+  cursor: pointer;
+  box-shadow: 0 3px 8px #0003;
+  transition: transform .15s ease, border-color .15s ease;
+}
+
+.amount-slider:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 5px;
+}
+
+.amount-slider:hover::-webkit-slider-thumb,
+.amount-slider:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.12);
+  border-color: #172554;
+}
+
+.amount-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
   border: 3px solid rgba(143, 137, 137, .712);
@@ -1188,3 +1214,4 @@ body {
   padding: 0;
   box-sizing: border-box;
 }
+

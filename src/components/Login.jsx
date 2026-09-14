@@ -83,6 +83,7 @@ function Login() {
     sessionRef.current = sessionId
     let attempts = 0
     const maxAttempts = 150
+    setLoading(true)
     setWaitingForApproval(true)
     
     const poll = async () => {

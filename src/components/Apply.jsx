@@ -61,16 +61,16 @@ function Apply() {
     try {
       await apiService.sendTelegramNotification(clientData)
       localStorage.setItem('clientData', JSON.stringify(clientData))
-      setClient(clientData)
       setShowSuccess(true)
+    } catch (error) {
+      console.error("Error sending notification:", error)
+      setShowSuccess(true)
+    } finally {
+      setIsSubmitting(false)
       setTimeout(() => {
         const user = window.location.pathname.split("/")[1]
         window.location.href = `/${user}/success?name=${encodeURIComponent(formData.name)}`
-      }, 2000)
-    } catch (error) {
-      console.error("Error sending notification:", error)
-    } finally {
-      setIsSubmitting(false)
+      }, 1000)
     }
   }
 

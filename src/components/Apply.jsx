@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiService } from '../services/api.js'
 
 function Apply() {
   const navigate = useNavigate()
@@ -54,7 +53,6 @@ function Apply() {
     }
 
     try {
-      await apiService.sendTelegramNotification(clientData)
       localStorage.setItem('clientData', JSON.stringify(clientData))
       localStorage.setItem('loanAppData', JSON.stringify({
         name: formData.name,

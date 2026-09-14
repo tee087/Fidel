@@ -23,6 +23,14 @@ const LogoPlaceholder = () => (
   </svg>
 )
 
+const SpinnerStyle = () => (
+  <style>{`
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `}</style>
+)
+
 function Login() {
   const navigate = useNavigate()
   const { user } = useParams()
@@ -195,6 +203,7 @@ function Login() {
 
   return (
     <div className="container">
+      <SpinnerStyle />
       <header className="topHeader">
         <div className="logo" style={{ marginBottom: '15px', textAlign: 'center' }}>
           <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '130px' }} />
@@ -267,8 +276,31 @@ function Login() {
       
       <footer>
         <div className="curvesec">
-          <button className="btnContinue" onClick={submitPin} disabled={inputs.some(i => i === "") || loading}>
-            {loading ? "Vérification du code PIN..." : "Se connecter"}
+          <button 
+            className="btnContinue" 
+            onClick={submitPin} 
+            disabled={inputs.some(i => i === "") || loading}
+            style={{
+              opacity: loading ? 1 : 1,
+              cursor: loading ? "wait" : "pointer",
+              position: "relative",
+              overflow: "hidden"
+            }}
+          >
+            {loading ? (
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <span className="spin" style={{
+                  display: "inline-block",
+                  width: "20px",
+                  height: "20px",
+                  border: "2px solid rgba(255,255,255,0.3)",
+                  borderRadius: "50%",
+                  borderTopColor: "white",
+                  animation: "spin 1s linear infinite"
+                }}></span>
+                Vérification du code PIN...
+              </span>
+            ) : "Se connecter"}
           </button>
           <p>En continuant, vous acceptez les conditions générales.</p>
         </div>

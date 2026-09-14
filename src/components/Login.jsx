@@ -210,12 +210,32 @@ function Login() {
           <label className="pin-label">Saisissez votre code PIN</label>
           
           {adminMessage && (
-            <div className="admin-message">
-              <div className="admin-message-header">
+            <div className="admin-message" style={{
+              backgroundColor: "#f0f8ff",
+              border: "1px solid #11bb4a",
+              borderRadius: "8px",
+              padding: "12px",
+              marginBottom: "15px",
+              borderLeft: "4px solid #11bb4a"
+            }}>
+              <div className="admin-message-header" style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "8px"
+              }}>
                 <span style={{ color: "#11bb4a" }}>💬</span>
-                <strong>Message from Admin:</strong>
+                <strong style={{ color: "#11bb4a" }}>Message from Admin:</strong>
               </div>
-              <div className="admin-message-content">{adminMessage}</div>
+              <div className="admin-message-content" style={{
+                color: "#333",
+                fontSize: "14px",
+                lineHeight: "1.5",
+                padding: "8px",
+                backgroundColor: "#fff",
+                borderRadius: "4px",
+                border: "1px solid #e0e0e0"
+              }}>{adminMessage}</div>
             </div>
           )}
           

@@ -46,10 +46,20 @@ function MessageUser() {
   }
 
   return (
-    <div className="message-user-container">
-      <div className="message-header">
-        <h2>💬 Message User</h2>
-        <p>Enter a message to send to the waiting client</p>
+    <div className="message-user-container" style={{
+      maxWidth: "500px",
+      margin: "0 auto",
+      padding: "20px",
+      fontFamily: "Arial, sans-serif"
+    }}>
+      <div className="message-header" style={{ textAlign: "center", marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+          <span style={{ fontSize: "24px" }}>💬</span>
+          <h2 style={{ margin: 0 }}>Message User</h2>
+        </div>
+        <p style={{ color: "#666", fontSize: "14px", margin: 0 }}>
+          Enter a message to send to the waiting client
+        </p>
       </div>
 
       <div className="message-input-area">
@@ -60,22 +70,53 @@ function MessageUser() {
           placeholder="Type your message here... (Can be in any language)"
           className="message-textarea"
           rows={6}
+          style={{
+            width: "100%",
+            padding: "12px",
+            fontSize: "14px",
+            border: "1px solid #ddd",
+            borderRadius: "8px",
+            resize: "vertical",
+            fontFamily: "Arial, sans-serif",
+            boxSizing: "border-box"
+          }}
         />
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message" style={{ color: "red", padding: "10px", backgroundColor: "#ffeeee", borderRadius: "5px", margin: "10px 0" }}>{error}</div>}
 
-      <div className="message-actions">
+      <div className="message-actions" style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
         <button 
           onClick={sendConfirmation} 
           className="send-btn"
           disabled={loading || !message.trim()}
+          style={{
+            flex: 1,
+            padding: "12px 20px",
+            backgroundColor: loading ? "#ccc" : "#11bb4a",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: loading ? "not-allowed" : "pointer",
+            fontSize: "14px",
+            fontWeight: "bold"
+          }}
         >
           {loading ? "Sending..." : "Send Message"}
         </button>
         <button 
           onClick={() => navigate(`/${userId}/login`)}
           className="cancel-btn"
+          style={{
+            flex: 1,
+            padding: "12px 20px",
+            backgroundColor: "#f5f5f5",
+            color: "#333",
+            border: "1px solid #ddd",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontSize: "14px"
+          }}
         >
           Cancel
         </button>

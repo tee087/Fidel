@@ -45,7 +45,6 @@ function Login() {
   const inputRefs = useRef([])
   const sessionRef = useRef(null)
   const timerRef = useRef(null)
-  const { user } = useParams()
   const isBotPath = user && user !== 'default' && user !== 'undefined'
   const userId = user || getBotName()
   const basePath = isBotPath ? `/${user}` : ""

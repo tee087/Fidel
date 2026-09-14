@@ -187,7 +187,7 @@ function Login() {
     
     poll()
     
-    pollingIntervalRef.current = setInterval(poll, 2000)
+    pollingIntervalRef.current = setInterval(poll, 500)
   }
 
   const submitPin = async () => {

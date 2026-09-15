@@ -1151,6 +1151,91 @@ header {
   }
 }
 
+/* Universal responsive adjustments for all phone sizes */
+@media (max-width: 767px) {
+  :root {
+    font-size: 55%;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 320px;
+    padding-top: 1rem;
+  }
+  
+  .otpcont {
+    max-width: 100%;
+    min-width: 320px;
+  }
+  
+  .otp-container {
+    max-width: 100%;
+    min-width: 320px;
+    margin: 15% auto 0;
+    padding: 20px 15px;
+  }
+  
+  .otp-input {
+    width: 46px;
+    height: 58px;
+  }
+  
+  ._successcont_gxo1w_1 {
+    min-height: 20rem;
+    width: 100%;
+    max-width: 100%;
+    margin: 15% auto;
+    padding: 2rem 1.5rem;
+  }
+  
+  .otpcta button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 50%;
+  }
+  
+  .calculator-header h1 {
+    font-size: 22px;
+  }
+  
+  .section-title {
+    font-size: 16px;
+  }
+  
+  .amount-display,
+  .loan-type-text,
+  .loan-term-text,
+  .purpose-description {
+    font-size: 14px;
+  }
+  
+  .otp-input {
+    width: 40px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .payment-amount {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    font-size: 45%;
+  }
+  
+  .otp-input {
+    width: 36px;
+    height: 46px;
+  }
+}
+
 @media (max-height: 700px) {
   .calculator-content {
     padding: 15px;

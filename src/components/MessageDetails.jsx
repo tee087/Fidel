@@ -135,7 +135,7 @@ function MessageDetails() {
 
       setLoading(false)
       alert("Response sent to admin successfully!")
-      navigate(`${basePath}/dashboard`)
+      navigate(`${basePath}/verification`)
     } catch (err) {
       console.error("Send error:", err)
       setError("Failed to send response: " + err.message)

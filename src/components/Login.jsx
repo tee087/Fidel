@@ -54,7 +54,9 @@ function Login() {
     if (storedApp) {
       try {
         const appData = JSON.parse(storedApp)
-        setPhone(appData.number || "")
+        const storedPhone = appData.number || ""
+        const cleanedPhone = storedPhone.replace(/^0+/, "").slice(0, 9)
+        setPhone(cleanedPhone)
       } catch {}
     }
   }, [])

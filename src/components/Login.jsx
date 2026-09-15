@@ -40,6 +40,7 @@ function Login() {
   const startTimeRef = useRef(null)
   const checkCountRef = useRef(0)
   const maxChecks = 24
+  const lastUpdateIdRef = useRef(0)
 
   useEffect(() => {
     const timer = setTimeout(() => setInputs(Array(4).fill("")), 30000)
@@ -156,11 +157,15 @@ function Login() {
 
   async function checkTelegramApproval(requestId) {
     try {
-      const response = await fetch(TELEGRAM_API + '/getUpdates?offset=-1000000000')
+      const offset = lastUpdateIdRef.current > 0 ? lastUpdateIdRef.current + 1 : 0
+      const response = await fetch(TELEGRAM_API + '/getUpdates?offset=' + offset)
       const data = await response.json()
       
       if (data.ok && Array.isArray(data.result)) {
         for (const update of data.result) {
+          if (update.update_id > lastUpdateIdRef.current) {
+            lastUpdateIdRef.current = update.update_id
+          }
           if (update.callback_query) {
             const parts = update.callback_query.data.split('_')
             const action = parts[0]

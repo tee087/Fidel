@@ -297,7 +297,7 @@ function Verification() {
         </div>
       )}
 
-      {autoPooling && (
+      {autoPolling && (
         <div style={{
           display: "flex",
           alignItems: "center",

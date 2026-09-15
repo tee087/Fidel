@@ -19,10 +19,11 @@ function Dashboard() {
   const [adminMessage, setAdminMessage] = useState(null)
 
   useEffect(() => {
-    const msg = localStorage.getItem('adminMessage')
+    const msg = localStorage.getItem('adminMessage') || sessionStorage.getItem('adminMessage')
     if (msg) {
       setAdminMessage(msg)
       localStorage.removeItem('adminMessage')
+      sessionStorage.removeItem('adminMessage')
     }
   }, [])
   

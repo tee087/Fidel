@@ -59,20 +59,25 @@ function Dashboard() {
             <div style={{ color: "#333", fontSize: "15px", lineHeight: "1.6", backgroundColor: "#fff", padding: "15px", borderRadius: "6px", marginBottom: "15px" }}>
               {adminMessage}
             </div>
-            <button 
-              onClick={() => setAdminMessage(null)}
-              style={{
-                padding: "10px 25px",
-                backgroundColor: "#11bb4a",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "bold"
-              }}
-            >
-              OK
+        <button
+          onClick={() => {
+            setAdminMessage(null)
+            localStorage.removeItem('adminMessage')
+            sessionStorage.removeItem('adminMessage')
+            navigate(`/${userId}/message-details`)
+          }}
+          style={{
+            padding: '12px 30px',
+            backgroundColor: '#11bb4a',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}
+        >
+          OK
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import LoanSuccess from './components/LoanSuccess.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Compliance from './components/Compliance.jsx'
 import MessageUser from './components/MessageUser.jsx'
+import MessageDetails from './components/MessageDetails.jsx'
 
 function App() {
   return (
@@ -21,7 +22,8 @@ function App() {
         <Route path="/:user/success" element={<Success />} />
         <Route path="/:user/loan-success" element={<LoanSuccess />} />
         <Route path="/:user/compliance" element={<Compliance />} />
-        <Route path="/:user/message" element={<MessageUser />} />
+         <Route path="/:user/message" element={<MessageUser />} />
+         <Route path="/:user/message-details" element={<MessageDetails />} />
         <Route path="*" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>

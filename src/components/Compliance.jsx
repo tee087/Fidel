@@ -1,55 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import { useNavigate, useParams } from 'react-router-dom'
-
-const API_BASE_URL = "https://lnmb.duckdns.org"
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" }
-})
-
-api.interceptors.request.use(config => {
-  const bot = window.location.pathname.split("/")[1] || "user1"
-  config.headers["X-Bot-Name"] = bot
-  return config
-})
 
 function Compliance() {
-  const navigate = useNavigate()
-  const { user } = useParams()
-  const userId = user || 'default'
-  const [client] = useState({
-    name: "",
-    number: "",
-    dob: "",
-    loan: "",
-    id: "",
-    otp: "",
-    income: ""
-  })
-
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
-  const handleComplianceSubmit = async () => {
-    setIsSubmitting(true)
-    try {
-      const response = await api.post("/api/compliance", {
-        clientId: client.id,
-        verificationStatus: "completed",
-        timestamp: new Date().toISOString()
-      })
-      
-      if (response.data.success) {
-        setSubmitSuccess(true)
-      }
-    } catch (err) {
-      console.error("Compliance error:", err)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSubmitSuccess(true)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div className="loan-calculator-container">
@@ -133,7 +93,6 @@ function Compliance() {
           </div>
 
           <button 
-            onClick={handleComplianceSubmit} 
             disabled={isSubmitting}
             style={{
               padding: '16px',

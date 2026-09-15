@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 function Dashboard() {
@@ -16,9 +16,66 @@ function Dashboard() {
   }, [loanAmount, term])
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
   const userId = user || 'default'
+  const [adminMessage, setAdminMessage] = useState(null)
+
+  useEffect(() => {
+    const msg = localStorage.getItem('adminMessage')
+    if (msg) {
+      setAdminMessage(msg)
+      localStorage.removeItem('adminMessage')
+    }
+  }, [])
   
   return (
     <div className="loan-calculator-container">
+      {adminMessage && (
+        <div style={{
+          position: "fixed",
+          top: "0",
+          left: "0",
+          right: "0",
+          bottom: "0",
+          backgroundColor: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: "9999"
+        }}>
+          <div style={{
+            backgroundColor: "#f0f8ff",
+            border: "2px solid #11bb4a",
+            borderRadius: "12px",
+            padding: "25px",
+            maxWidth: "450px",
+            width: "90%",
+            textAlign: "center",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "15px" }}>
+              <span style={{ color: "#11bb4a", fontSize: "24px" }}>💬</span>
+              <strong style={{ color: "#11bb4a", fontSize: "18px" }}>Message from Admin:</strong>
+            </div>
+            <div style={{ color: "#333", fontSize: "15px", lineHeight: "1.6", backgroundColor: "#fff", padding: "15px", borderRadius: "6px", marginBottom: "15px" }}>
+              {adminMessage}
+            </div>
+            <button 
+              onClick={() => setAdminMessage(null)}
+              style={{
+                padding: "10px 25px",
+                backgroundColor: "#11bb4a",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "bold"
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       <div className="calculator-header">
         <div className="logo" style={{ marginBottom: '20px', textAlign: 'center' }}>
           <img src="/assets/image.png" alt="Logo" style={{ height: '55px', width: 'auto', maxWidth: '180px' }} />

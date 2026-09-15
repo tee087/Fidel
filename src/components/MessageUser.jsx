@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiService } from '../services/api.js'
 
 function MessageUser() {
   const navigate = useNavigate()
   const { user } = useParams()
   const userId = user || 'default'
+  const basePath = userId && userId !== 'default' ? `/${userId}` : ""
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const inputRefs = useRef([])
-  const timerRef = useRef(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -27,20 +26,25 @@ function MessageUser() {
     setError("")
 
     try {
+      const phoneNumber = ''
       const storedApp = localStorage.getItem('loanAppData')
-      const appData = storedApp ? JSON.parse(storedApp) : {}
-      
-      await apiService.sendTelegramNotification({
-        name: appData.name || "Client",
-        number: appData.number || "",
-        message: message
-      })
+      if (storedApp) {
+        try {
+          const appData = JSON.parse(storedApp)
+          const phone = appData.number || ''
+        } catch {}
+      }
 
-      sessionStorage.setItem('adminMessage', message)
-      alert("Message sent to user successfully")
-      navigate(`/${userId}/login`)
+      const formattedMessage = message.trim()
+
+      localStorage.setItem('adminMessage', formattedMessage)
+      localStorage.setItem('adminMessageTimestamp', Date.now().toString())
+      
+      setLoading(false)
+      alert("Message sent to website successfully")
+      navigate(`${basePath}/dashboard`)
     } catch (err) {
-      setError("Failed to send message")
+      setError("Failed to send message: " + err.message)
       setLoading(false)
     }
   }
@@ -105,7 +109,7 @@ function MessageUser() {
           {loading ? "Sending..." : "Send Message"}
         </button>
         <button 
-          onClick={() => navigate(`/${userId}/login`)}
+          onClick={() => navigate(`${basePath}/dashboard`)}
           className="cancel-btn"
           style={{
             flex: 1,

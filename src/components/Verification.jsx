@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || ''
-const ADMIN_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
+const BOT_TOKEN = '8935232665:AAGjsHkuQo9DsQX3vVfstfDx36lttkEKCOY'
+const ADMIN_CHAT_ID = '8574792010'
 const TELEGRAM_API = 'https://api.telegram.org/bot' + BOT_TOKEN
 
 const SpinnerStyle = () => (

